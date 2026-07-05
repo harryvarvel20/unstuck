@@ -1,0 +1,276 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------
+   ADHV design tokens — "Old Money": ivory paper, deep navy, aged gold.
+   Light is the DEFAULT (:root); the optional "midnight" variant is `.dark`.
+   Colours are raw "R G B" triples so Tailwind's rgb(var(--x) / <alpha>)
+   opacity modifiers work.
+
+   AA note (verified — see reports/REDESIGN-SPEC.md): the interactive accent
+   (--accent) is NAVY on light / GOLD on dark, both of which pass AA as text.
+   Gold (--gold / --accent-2) is DECORATIVE ONLY on light (2.7:1 on ivory —
+   deliberately never used for text there); it's used for hairline rules,
+   borders, the timeline "now" line and ornament. Oxblood (--accent-3) is
+   destructive-only.
+   ------------------------------------------------------------------ */
+:root {
+  --bg: 245 240 230; /* ivory paper */
+  --surface: 251 248 241; /* warm off-white card */
+  --surface-2: 237 231 218; /* stone */
+  --border: 214 205 187; /* warm taupe hairline */
+  --text: 27 37 49; /* charcoal-navy ink (13.6:1 on ivory) */
+  --muted: 92 86 72; /* taupe secondary (6.4:1 on ivory) */
+
+  --accent: 15 31 52; /* deep navy — the interactive accent (14.6:1) */
+  --accent-2: 176 141 87; /* aged gold — DECORATIVE only on light */
+  --accent-3: 122 46 46; /* oxblood — destructive only */
+  --accent-soft: 232 227 214; /* parchment chip (navy text reads strong) */
+  --accent-ink: 245 240 230; /* ivory text on the navy accent */
+  --gold: 176 141 87; /* decorative gold alias */
+
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-sans:
+    var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+
+  /* Soft, low, single-direction shadows — no glass blur, no glow. */
+  --shadow-soft:
+    0 1px 2px rgb(27 37 49 / 0.05), 0 6px 16px rgb(27 37 49 / 0.07);
+  --shadow-float:
+    0 8px 24px rgb(27 37 49 / 0.1), 0 2px 6px rgb(27 37 49 / 0.06);
+}
+
+.dark {
+  /* Midnight — deep navy base, warm ivory text, gold accent (AA on dark). */
+  --bg: 12 19 32;
+  --surface: 19 28 44;
+  --surface-2: 29 40 59;
+  --border: 45 58 80;
+  --text: 240 234 222; /* warm ivory */
+  --muted: 168 172 182; /* cool stone (6.7:1 on navy) */
+
+  --accent: 199 167 112; /* gold IS the interactive accent on dark (6.5:1) */
+  --accent-2: 199 167 112; /* gold */
+  --accent-3: 176 96 90; /* muted oxblood */
+  --accent-soft: 30 41 60;
+  --accent-ink: 12 19 32; /* dark navy text on gold buttons */
+  --gold: 199 167 112;
+
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px rgb(0 0 0 / 0.5);
+  --shadow-float: 0 10px 30px rgb(0 0 0 / 0.55), 0 2px 8px rgb(0 0 0 / 0.4);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--text));
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Editorial serif for display/headings; humanist sans for body/UI. */
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.005em;
+  font-weight: 600;
+}
+
+/* Tabular numerals wherever data/time is shown. */
+.tabular,
+time,
+[data-tabular] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* A hairline gold rule / divider utility. */
+.rule-gold {
+  border: 0;
+  border-top: 1px solid rgb(var(--gold) / 0.5);
+}
+
+/* Respect reduced motion — kill animation/transition globally. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .mesh {
+    animation: none !important;
+  }
+}
+
+/* Visible, accessible focus ring. */
+:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* Silk, not bounce: quiet tap feedback (state still obvious, no flourish). */
+button:active,
+[role="button"]:active {
+  transform: translateY(0.5px);
+}
+button,
+[role="button"] {
+  transition:
+    filter 0.16s ease,
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.1s ease;
+}
+
+/* Loading skeleton shimmer. */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--surface-2)) 25%,
+    rgb(var(--border)) 37%,
+    rgb(var(--surface-2)) 63%
+  );
+  background-size: 800px 100%;
+}
+
+/* --- Utilities ------------------------------------------------------ */
+
+/* Primary action — a solid, engraved navy (gold on midnight). The name is
+   kept (`grad-primary`) so every existing button inherits the new treatment;
+   there is no longer a gradient. */
+.grad-primary {
+  background-color: rgb(var(--accent));
+  color: rgb(var(--accent-ink));
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgb(var(--accent));
+}
+.grad-primary:hover {
+  filter: brightness(1.08);
+}
+
+/* Display emphasis — a solid navy (light) / gold (dark); AA in both. Kept as
+   `grad-text` so the wordmark + hero headings inherit it. */
+.grad-text {
+  color: rgb(var(--accent));
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+}
+
+/* Card surface — solid ivory, a hairline aged-gold border, a soft low shadow.
+   Replaces the old glassmorphism. Name kept so every card inherits it. */
+.glass {
+  background-color: rgb(var(--surface));
+  border: 1px solid rgb(var(--gold) / 0.3);
+  box-shadow: var(--shadow-soft);
+}
+
+/* --- Background material -------------------------------------------------
+   Replaces the animated gradient mesh. STATIC (no motion): a whisper of aged
+   gold at the top and a corner, over the ivory paper — like light falling on
+   good stock. Plus a barely-there linen grain (below). */
+.mesh {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      70% 45% at 50% -8%,
+      rgb(var(--gold) / 0.07) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      45% 45% at 100% 100%,
+      rgb(var(--gold) / 0.05) 0%,
+      transparent 70%
+    );
+}
+/* Linen grain — extremely subtle, adds paper texture without noise. */
+.mesh::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* --- Cross-platform app shell (Phase T) ----------------------------------
+   The nav is self-contained; the body makes room for it. Content everywhere
+   stays a calm centered column — never edge-to-edge sprawl. */
+body:has(nav[data-tabbar]) {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  body:has(nav[data-tabbar]) {
+    padding-bottom: 0;
+  }
+  body:has(nav[data-rail]) {
+    padding-left: 4rem;
+  }
+}
+/* Desktop type scale: display type a little larger and calmer. */
+@media (min-width: 1024px) {
+  h1 {
+    letter-spacing: -0.025em;
+  }
+  .lg-display h1,
+  h1.font-display {
+    font-size: 2.5rem;
+    line-height: 1.15;
+  }
+}
+
+/* --- Acknowledgement seal (replaces the confetti burst) ------------------
+   A single, quietly drawn thin gold ring — appears, holds, fades. No burst,
+   no colour spray. Understated acknowledgement, not spectacle. Honoured by
+   the reduced-motion rule above (it simply appears and fades faster). */
+.seal-mark {
+  position: fixed;
+  z-index: 60;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  pointer-events: none;
+  border-radius: 9999px;
+  border: 2px solid rgb(var(--gold));
+  color: rgb(var(--gold));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  will-change: transform, opacity;
+  animation: seal-in 0.9s ease forwards;
+}
+@keyframes seal-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  75% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+}

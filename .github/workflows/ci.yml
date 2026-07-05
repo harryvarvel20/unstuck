@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  # Runs on every push with no external dependencies — always required to pass.
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint # ESLint (configured in X3)
+      - run: npm run format:check # Prettier (configured in X3)
+      - run: npm test
+      - run: npm run build
+        env:
+          # Dummy values so the build succeeds without real secrets; routes
+          # that need them fail open/return 503 at runtime, which is fine for
+          # a build-only check. Real secrets are only ever used at deploy time
+          # (Vercel env vars), never checked into this file.
+          NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder"
+      - run: node --experimental-strip-types scripts/parsecheck.ts
+      - run: node --experimental-strip-types scripts/crisis-routing-adversarial.ts
+      - run: npm audit --audit-level=critical
+
+  # Requires real Supabase secrets (repo Settings -> Secrets and variables ->
+  # Actions): SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY.
+  # Recommendation (see reports/SECURITY-REPORT.md): point these at a
+  # dedicated STAGING Supabase project once one exists, not production — this
+  # job creates and deletes two throwaway auth users on every run. Until a
+  # staging secret set is configured, this job is skipped (not failed).
+  rls-isolation:
+    runs-on: ubuntu-latest
+    if: ${{ vars.RLS_CI_ENABLED == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: node scripts/rls-isolation-harness.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
