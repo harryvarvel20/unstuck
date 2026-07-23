@@ -65,9 +65,8 @@ safeguarding routing on every free-text surface (a compassionate signpost —
 Samaritans 116 123 / Childline 0800 1111 / NSPCC 0808 800 5000 / 999 — instead
 of any AI output). Not therapy/medical; disclaimer everywhere. One primary
 action per screen. All AI is structured (no open chat). Mobile-first at 390px;
-ARIA, full keyboard nav, `prefers-reduced-motion`, WCAG AA. Server-side gating
-
-- per-user/per-IP rate limits; RLS on every table.
+ARIA, full keyboard nav, `prefers-reduced-motion`, WCAG AA. Server-side gating,
+per-user and per-IP rate limits, and RLS on every table.
 
 ## Local setup
 
