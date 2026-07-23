@@ -40,7 +40,7 @@ export default function Error({
         </Link>
       </div>
       <p className="mt-8 text-xs text-muted/80">
-        ADHV is a productivity tool, not medical advice or treatment.
+        ADHV is a self-management tool, not therapy or medical advice.
       </p>
     </div>
   );

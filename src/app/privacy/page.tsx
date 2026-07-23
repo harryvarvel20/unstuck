@@ -14,7 +14,7 @@ export default function PrivacyPage() {
         <ThemeToggle />
       </header>
 
-      <main className="prose-unstuck flex flex-col gap-4">
+      <main className="flex flex-col gap-4">
         <h1 className="text-2xl font-semibold text-text sm:text-3xl">
           Privacy
         </h1>
@@ -99,7 +99,7 @@ export default function PrivacyPage() {
         </Section>
 
         <p className="mt-6 text-xs text-muted/80">
-          ADHV is a productivity tool, not medical advice or treatment.
+          ADHV is a self-management tool, not therapy or medical advice.
         </p>
       </main>
 

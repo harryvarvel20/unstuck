@@ -78,7 +78,7 @@ export default function TermsPage() {
         </Section>
 
         <p className="mt-6 text-xs text-muted/80">
-          ADHV is a productivity tool, not medical advice or treatment.
+          ADHV is a self-management tool, not therapy or medical advice.
         </p>
       </main>
 

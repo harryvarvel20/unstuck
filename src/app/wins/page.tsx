@@ -112,7 +112,7 @@ export default async function WinsPage() {
 
       <footer className="mt-auto pt-10">
         <p className="text-center text-xs text-muted/80">
-          ADHV is a productivity tool, not medical advice or treatment.
+          ADHV is a self-management tool, not therapy or medical advice.
         </p>
       </footer>
     </div>

@@ -66,7 +66,8 @@ Samaritans 116 123 / Childline 0800 1111 / NSPCC 0808 800 5000 / 999 — instead
 of any AI output). Not therapy/medical; disclaimer everywhere. One primary
 action per screen. All AI is structured (no open chat). Mobile-first at 390px;
 ARIA, full keyboard nav, `prefers-reduced-motion`, WCAG AA. Server-side gating
-+ per-user/per-IP rate limits; RLS on every table.
+
+- per-user/per-IP rate limits; RLS on every table.
 
 ## Local setup
 
@@ -82,16 +83,16 @@ the social + parents features, and per-account limits. Add Stripe keys for Pro.
 
 ### Environment variables
 
-| Variable                                                     | Where  | Purpose                                              |
-| ------------------------------------------------------------ | ------ | ---------------------------------------------------- |
-| `GEMINI_API_KEY`                                             | server | Powers all AI. Never client-side.                    |
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | Supabase project + anon/publishable key              |
-| `SUPABASE_SERVICE_ROLE_KEY`                                  | server | Rate limits, webhooks, storage, deletion. **Secret.**|
-| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`                | server | Checkout + webhook verification. **Secret.**         |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`                         | public | Stripe publishable key                               |
-| `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_ANNUAL`               | server | Price IDs (£7.99/mo, £59/yr)                         |
-| `NEXT_PUBLIC_POSTHOG_KEY` / `NEXT_PUBLIC_POSTHOG_HOST`       | public | Analytics (optional; no-op without a key)            |
-| `NEXT_PUBLIC_APP_URL`                                        | public | Base URL for redirects, OG, Stripe                   |
+| Variable                                                     | Where  | Purpose                                               |
+| ------------------------------------------------------------ | ------ | ----------------------------------------------------- |
+| `GEMINI_API_KEY`                                             | server | Powers all AI. Never client-side.                     |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | Supabase project + anon/publishable key               |
+| `SUPABASE_SERVICE_ROLE_KEY`                                  | server | Rate limits, webhooks, storage, deletion. **Secret.** |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`                | server | Checkout + webhook verification. **Secret.**          |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`                         | public | Stripe publishable key                                |
+| `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_ANNUAL`               | server | Price IDs (£7.99/mo, £59/yr)                          |
+| `NEXT_PUBLIC_POSTHOG_KEY` / `NEXT_PUBLIC_POSTHOG_HOST`       | public | Analytics (optional; no-op without a key)             |
+| `NEXT_PUBLIC_APP_URL`                                        | public | Base URL for redirects, OG, Stripe                    |
 
 `NEXT_PUBLIC_*` vars are inlined at **build** time — set them before building.
 
@@ -152,11 +153,11 @@ Redirect URLs `http://localhost:3000/**` (add your production domain too).
 
 ## Limits (server-enforced; Pro = unlimited)
 
-|                                      | Free | Pro |
-| ------------------------------------ | ---- | --- |
-| Breakdowns/day                       | 3    | ∞   |
-| Focus sessions/day                   | 1    | ∞   |
-| Time-Truth, plans, routines, Regulate, Activity Center, Parents Mode | — | ✓ |
+|                                                                      | Free | Pro |
+| -------------------------------------------------------------------- | ---- | --- |
+| Breakdowns/day                                                       | 3    | ∞   |
+| Focus sessions/day                                                   | 1    | ∞   |
+| Time-Truth, plans, routines, Regulate, Activity Center, Parents Mode | —    | ✓   |
 
 Per-minute burst ceilings protect the AI endpoints and every social/parents
 write route from rapid-fire abuse (applies to Pro too).

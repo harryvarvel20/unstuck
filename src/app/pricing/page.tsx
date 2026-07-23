@@ -51,7 +51,7 @@ export default async function PricingPage() {
             </li>
             <li>· No streaks, no guilt, no &quot;we miss you&quot; emails.</li>
             <li>
-              · ADHV is a productivity tool, not medical advice or treatment.
+              · ADHV is a self-management tool, not therapy or medical advice.
             </li>
           </ul>
         </div>
@@ -59,7 +59,7 @@ export default async function PricingPage() {
 
       <footer className="mt-auto pt-10">
         <p className="text-center text-xs text-muted/80">
-          ADHV is a productivity tool, not medical advice or treatment.
+          ADHV is a self-management tool, not therapy or medical advice.
         </p>
       </footer>
     </div>
