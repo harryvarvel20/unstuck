@@ -94,7 +94,7 @@ export default function PrivacyPage() {
         <Section title="Contact">
           <p>
             Questions or requests:{" "}
-            <span className="text-text">hello@unstuck.app</span>.
+            <span className="text-text">harryvarvel@gmail.com</span>.
           </p>
         </Section>
 

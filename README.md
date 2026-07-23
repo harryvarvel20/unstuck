@@ -29,6 +29,10 @@ layer, and a parenting-support section.
 - **Regulate suite** (cool-down, big-feelings decompress, message-spiral
   defuser), **Dopamenu**, **Idea Vault**, **Impulse Pause**, **Focus Profile**,
   **Connection** nudges, and a shareable **weekly wins** recap.
+- **Navigator** — a plain-language "what would you like to solve today?" bar on
+  the Toolkit: the AI reads the intent and routes to the right tool (pre-filling
+  the composer for a named task). Crisis/child-safety is screened
+  deterministically first, so it signposts help instead of routing.
 
 **Activity Center** (Pro social layer) — friends by handle (mutual-accept,
 silent unfriend), a finite reverse-chron **wins feed** (reactions are faces,
@@ -150,6 +154,27 @@ Redirect URLs `http://localhost:3000/**` (add your production domain too).
 4. Local testing: `stripe listen --forward-to localhost:3000/api/webhooks/stripe`.
    Use test card `4242 4242 4242 4242`.
 
+### Discount codes (influencers & partners)
+
+Each creator gets their own code that gives their audience **10% off**. It's
+entered on the pricing page ("Have a discount code?") and validated + applied
+server-side; no code change is needed to add a new one.
+
+1. **Make the coupon once** — Stripe dashboard → Product catalog → Coupons →
+   **New**. Set **Percent off = 10%**, **Duration** = _Forever_ (or _Repeating_
+   for a few months). Give it a clear name like "Creator 10%". You can reuse
+   this one coupon for every creator.
+2. **Make a promotion code per creator** — on that coupon, **Add a promotion
+   code**. The **customer-facing code** is what the influencer shares (e.g.
+   `SARAH10`, `ADHDJOURNEY`). Repeat for each new creator — one promotion code
+   each, so you can track and deactivate them individually.
+3. Optionally set per-code limits (max redemptions, expiry, first-time-only).
+4. To retire a creator's code, toggle its promotion code to **inactive** in
+   Stripe — inactive codes are rejected automatically.
+
+Codes work in test mode too: create them under your test keys to try the full
+flow before going live.
+
 ## Limits (server-enforced; Pro = unlimited)
 
 |                                                                      | Free | Pro |
@@ -197,6 +222,7 @@ and the go/no-go summary (`PHASE-X-SUMMARY.md`).
 ## How to change things
 
 - **Prompts / tone / crisis rule** — `src/lib/gemini.ts` (+ `src/lib/safety.ts` for the deterministic gates)
+- **Navigator destinations** — `NAV_DESTINATIONS` in `src/lib/gemini.ts` (slug → route + description; the route map is derived from it in `src/app/api/navigate/route.ts`)
 - **Model** — `BREAKDOWN_MODEL` in `src/lib/gemini.ts`
 - **Free limits / burst** — `src/lib/constants.ts`, `LIMITS`/`BURST` in `src/lib/quota.ts`
 - **Prices** — the two Stripe env vars (no code change)

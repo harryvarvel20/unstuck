@@ -14,7 +14,11 @@ function json(body: unknown, status: number): Response {
   });
 }
 
-const schema = z.object({ plan: z.enum(["monthly", "annual"]) });
+const schema = z.object({
+  plan: z.enum(["monthly", "annual"]),
+  // Optional influencer/marketing discount code (a Stripe *promotion code*).
+  code: z.string().trim().max(64).optional(),
+});
 
 /** POST /api/checkout — create a Stripe Checkout session for the signed-in user. */
 export async function POST(req: NextRequest): Promise<Response> {
@@ -75,6 +79,30 @@ export async function POST(req: NextRequest): Promise<Response> {
     }
   }
 
+  // Discount code (a Stripe *promotion code* — one per influencer, created in
+  // the Stripe dashboard). If the customer typed one, validate it server-side
+  // and pre-apply it; otherwise leave Stripe's own promo-code field enabled so
+  // they can still enter one on the hosted checkout page. Stripe forbids
+  // passing `discounts` and `allow_promotion_codes` together, so it's one or
+  // the other.
+  let discounts: { promotion_code: string }[] | undefined;
+  const code = parsed.data.code?.trim();
+  if (code) {
+    try {
+      const promos = await stripe.promotionCodes.list({
+        code,
+        active: true,
+        limit: 1,
+      });
+      const promo = promos.data[0];
+      if (!promo) return json({ error: "invalid_code" }, 400);
+      discounts = [{ promotion_code: promo.id }];
+    } catch (err) {
+      console.error("promo code lookup failed:", err);
+      return json({ error: "invalid_code" }, 400);
+    }
+  }
+
   const base = appUrl(req.nextUrl.origin);
 
   try {
@@ -84,7 +112,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       client_reference_id: user.id,
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: { trial_period_days: TRIAL_DAYS },
-      allow_promotion_codes: true,
+      ...(discounts ? { discounts } : { allow_promotion_codes: true }),
       success_url: `${base}/welcome?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${base}/pricing`,
     });

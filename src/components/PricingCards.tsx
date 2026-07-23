@@ -32,6 +32,8 @@ export function PricingCards({ signedIn, isPro }: PricingCardsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState<"monthly" | "annual" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showCode, setShowCode] = useState(false);
+  const [code, setCode] = useState("");
 
   async function subscribe(plan: "monthly" | "annual") {
     if (!signedIn) {
@@ -40,12 +42,13 @@ export function PricingCards({ signedIn, isPro }: PricingCardsProps) {
     }
     setLoading(plan);
     setError(null);
-    capture(EVENTS.checkoutStarted, { plan });
+    const trimmed = code.trim();
+    capture(EVENTS.checkoutStarted, { plan, code: trimmed ? true : false });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify(trimmed ? { plan, code: trimmed } : { plan }),
       });
       const body = (await res.json()) as { url?: string; error?: string };
       if (res.ok && body.url) {
@@ -54,6 +57,12 @@ export function PricingCards({ signedIn, isPro }: PricingCardsProps) {
       }
       if (body.error === "already_pro") {
         router.push("/account");
+        return;
+      }
+      if (body.error === "invalid_code") {
+        setError(
+          "That discount code isn't valid — check it and try again, or leave it blank.",
+        );
         return;
       }
       setError("Checkout isn't available right now — try again in a moment.");
@@ -138,6 +147,43 @@ export function PricingCards({ signedIn, isPro }: PricingCardsProps) {
               {loading === "monthly" ? "Opening checkout…" : "£7.99/month"}
             </button>
           </div>
+
+          {showCode ? (
+            <div className="mt-4">
+              <label
+                htmlFor="discount-code"
+                className="text-xs font-medium text-muted"
+              >
+                Discount code
+              </label>
+              <input
+                id="discount-code"
+                type="text"
+                inputMode="text"
+                autoCapitalize="characters"
+                autoComplete="off"
+                spellCheck={false}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="Enter your creator's code"
+                maxLength={64}
+                disabled={loading !== null}
+                className="mt-1 w-full rounded-2xl border border-border bg-surface-2 px-4 py-2.5 text-sm text-text placeholder:text-muted/70 focus:border-accent/60 focus:outline-none disabled:opacity-60"
+              />
+              <p className="mt-1.5 text-xs text-muted/80">
+                Got a code from a creator or partner? Pop it in for your
+                discount — it&apos;s applied at checkout.
+              </p>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowCode(true)}
+              className="mt-3 self-start text-sm text-muted underline-offset-4 transition-colors hover:text-accent hover:underline"
+            >
+              Have a discount code?
+            </button>
+          )}
 
           <p className="mt-3 text-center text-xs text-muted">
             Free for 7 days, cancel in one tap. We&apos;d rather you leave happy

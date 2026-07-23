@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Navigator } from "@/components/Navigator";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import type { SessionUser } from "@/lib/types";
 
@@ -118,6 +119,19 @@ export default async function ToolkitPage() {
           Everything, one tap away — but never all at once. The right tool for
           the moment you&apos;re in.
         </p>
+
+        {/* Navigator — tell it what's going on, it takes you to the tool */}
+        <div className="mt-6">
+          <Navigator />
+        </div>
+
+        <div className="mt-4 flex items-center gap-3">
+          <span className="h-px flex-1 bg-border" />
+          <span className="text-xs font-medium uppercase tracking-[0.2em] text-muted/70">
+            or browse
+          </span>
+          <span className="h-px flex-1 bg-border" />
+        </div>
 
         <div className="mt-6 flex flex-col gap-7">
           {GROUPS.map((g) => (

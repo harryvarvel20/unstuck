@@ -6,11 +6,13 @@ import type { SessionUser, TaskRecord, BreakdownStep } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 interface AppPageProps {
-  searchParams: Promise<{ task?: string }>;
+  searchParams: Promise<{ task?: string; intent?: string }>;
 }
 
 export default async function AppPage({ searchParams }: AppPageProps) {
-  const { task: taskId } = await searchParams;
+  const { task: taskId, intent } = await searchParams;
+  // The Navigator can hand off a task to pre-fill the composer.
+  const initialInput = intent ? intent.slice(0, 500) : undefined;
 
   let user: SessionUser | null = null;
   let initialTask: TaskRecord | null = null;
@@ -87,6 +89,7 @@ export default async function AppPage({ searchParams }: AppPageProps) {
       isPro={isPro}
       timeTruth={timeTruth}
       plannedFirst={plannedFirst}
+      initialInput={initialInput}
     />
   );
 }

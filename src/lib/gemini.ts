@@ -349,6 +349,126 @@ Respond with ONLY this JSON object (no prose, no markdown fences):
 {"crisis": false, "message": "<one short welcoming-back sentence, zero guilt about the gap>", "micro": {"title": "<the 30-second move>", "minutes": 1}}`;
 }
 
+/* ==================================================================
+   Navigator — an intent router. The person types what they want to
+   solve ("I keep putting off my taxes", "I'm overwhelmed", "help with my
+   kid's homework") and we send them straight to the right tool. The model
+   only ever picks a slug from the fixed catalog below; the server maps that
+   slug to a real route, so a bad or hallucinated path can never escape.
+   ================================================================== */
+
+export const NAV_DESTINATIONS = [
+  {
+    slug: "breakdown",
+    path: "/app",
+    desc: "A specific task they're avoiding or procrastinating on and want to start — break it into tiny steps, body-double focus. The default when they name a concrete thing to do.",
+  },
+  {
+    slug: "today",
+    path: "/today",
+    desc: "See or plan today as a timed timeline; 'what should I do now', deadlines, the shape of the day.",
+  },
+  {
+    slug: "morning_plan",
+    path: "/plan",
+    desc: "A morning brain-dump — empty a busy head onto the page and turn it into a doable day.",
+  },
+  {
+    slug: "routines",
+    path: "/routines",
+    desc: "Build or fix a repeatable routine (morning, evening, work start-up, leaving the house).",
+  },
+  {
+    slug: "ideas",
+    path: "/ideas",
+    desc: "Capture or develop an idea, a spark, a project they don't want to lose.",
+  },
+  {
+    slug: "tasks",
+    path: "/tasks",
+    desc: "Revisit their saved tasks, past breakdowns, or history.",
+  },
+  {
+    slug: "regulate",
+    path: "/regulate",
+    desc: "Overwhelmed, anxious, panicking, angry, ashamed, spiralling, a message stung, big feelings — needs to calm down, cool down, or decompress.",
+  },
+  {
+    slug: "dopamenu",
+    path: "/dopamenu",
+    desc: "Flat, bored, unmotivated, can't get going — wants a dopamine boost or a menu of lifts.",
+  },
+  {
+    slug: "impulse",
+    path: "/impulse",
+    desc: "An urge to impulse-buy or do something impulsive and wants a pause before acting.",
+  },
+  {
+    slug: "connect",
+    path: "/connect",
+    desc: "Wants to reach out to someone they care about, feels lonely, is neglecting a relationship.",
+  },
+  {
+    slug: "profile",
+    path: "/profile",
+    desc: "Wants to understand what their brain runs on — their focus profile and strengths.",
+  },
+  {
+    slug: "wins",
+    path: "/wins",
+    desc: "Wants to see what they've actually done — their wins or a weekly recap.",
+  },
+  {
+    slug: "winddown",
+    path: "/winddown",
+    desc: "Can't switch off, racing mind at night, wants to wind down or close the day.",
+  },
+  {
+    slug: "activity",
+    path: "/activity",
+    desc: "Friends, community, an accountability buddy, group challenges, the social side.",
+  },
+  {
+    slug: "parents",
+    path: "/parents",
+    desc: "Anything about THEIR CHILD with ADHD — meltdowns, homework battles, morning chaos, school/EHCP, parenting support (Parents Mode).",
+  },
+  {
+    slug: "toolkit",
+    path: "/toolkit",
+    desc: "Not sure, wants to browse everything, or nothing above clearly fits. The safe fallback.",
+  },
+] as const;
+
+export type NavSlug = (typeof NAV_DESTINATIONS)[number]["slug"];
+
+/** Build the Navigator system prompt from the destination catalog. */
+export function buildNavigatorPrompt(): string {
+  const catalog = NAV_DESTINATIONS.map((d) => `- "${d.slug}": ${d.desc}`).join(
+    "\n",
+  );
+
+  return `${VOICE_RULE}
+
+You are the Navigator: the person tells you, in their own words, what they want to solve or how they feel, and you send them to the single most helpful tool in the app. You do NOT solve the task yourself — you only route.
+
+${CRISIS_RULE}
+
+Otherwise choose exactly ONE destination slug from this catalog:
+${catalog}
+
+Respond with ONLY this JSON object (no prose before or after, no markdown fences):
+{"crisis": false, "slug": "<one slug from the catalog above>", "task": "<if and only if slug is \\"breakdown\\", a short cleaned version of the specific task they named, e.g. \\"file my tax return\\"; otherwise an empty string>", "reason": "<one short, warm sentence, addressed to them, saying where you're taking them — e.g. 'Let's break that down into a tiny first step.' Never clinical, never a diagnosis.>"}
+
+Rules:
+- "slug" MUST be exactly one of the catalog slugs. If nothing fits well, use "toolkit".
+- Prefer "breakdown" whenever they name a concrete task they're avoiding or want to start.
+- Anything about their own child goes to "parents". Anything about their own overwhelm/feelings goes to "regulate".
+- Keep "task" empty unless slug is "breakdown". Never invent a task they didn't mention.
+- "reason" is one warm sentence, no more.
+- Output valid JSON only.`;
+}
+
 /** Phase U: gentle tone-guard for comments — a nudge, never a hard block. */
 export function buildToneGuardPrompt(): string {
   return `You review one short comment that a user is about to post on a friend's small win in an ADHD support app. Decide if it is kind and safe to post as-is.

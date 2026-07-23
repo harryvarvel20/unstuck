@@ -61,6 +61,8 @@ interface BreakdownScreenProps {
   timeTruth?: TimeTruth | null;
   /** Last night's wind-down first action, if one was set for today. */
   plannedFirst?: BreakdownStep | null;
+  /** Text handed off from the Navigator to pre-fill the composer. */
+  initialInput?: string;
 }
 
 function sumMinutes(steps: BreakdownStep[]): number {
@@ -90,8 +92,9 @@ export function BreakdownScreen({
   isPro = false,
   timeTruth = null,
   plannedFirst = null,
+  initialInput = "",
 }: BreakdownScreenProps) {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(initialInput);
   const [status, setStatus] = useState<Status>(() =>
     initialTask ? "done" : "idle",
   );

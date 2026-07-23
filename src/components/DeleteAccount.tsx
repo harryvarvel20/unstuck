@@ -63,7 +63,8 @@ export function DeleteAccount() {
       </div>
       {error && (
         <p className="mt-2 text-sm text-accent" role="alert">
-          Couldn&apos;t delete just now — try again, or email hello@unstuck.app.
+          Couldn&apos;t delete just now — try again, or email
+          harryvarvel@gmail.com.
         </p>
       )}
     </div>
