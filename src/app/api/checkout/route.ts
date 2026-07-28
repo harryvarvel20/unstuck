@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import type Stripe from "stripe";
 import { z } from "zod";
 import { getStripe, appUrl, PRICES, TRIAL_DAYS } from "@/lib/stripe";
 import { createSupabaseServer } from "@/lib/supabase/server";
@@ -105,17 +106,27 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   const base = appUrl(req.nextUrl.origin);
 
+  const params: Stripe.Checkout.SessionCreateParams = {
+    mode: "subscription",
+    customer: customerId,
+    client_reference_id: user.id,
+    line_items: [{ price: priceId, quantity: 1 }],
+    subscription_data: { trial_period_days: TRIAL_DAYS },
+    ...(discounts ? { discounts } : { allow_promotion_codes: true }),
+    success_url: `${base}/welcome?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${base}/pricing`,
+  };
+  // Stripe "Managed Payments" (merchant-of-record + automatic tax) is on by
+  // default for new accounts. It adds VAT on top of our price plus a 3.5%
+  // per-transaction fee, and rejects checkout unless every product carries a
+  // tax code. We advertise a flat, all-in £7.99/£59, so disable it and charge
+  // exactly that. The param is newer than the pinned SDK types, hence the cast.
+  (params as { managed_payments?: { enabled: boolean } }).managed_payments = {
+    enabled: false,
+  };
+
   try {
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      customer: customerId,
-      client_reference_id: user.id,
-      line_items: [{ price: priceId, quantity: 1 }],
-      subscription_data: { trial_period_days: TRIAL_DAYS },
-      ...(discounts ? { discounts } : { allow_promotion_codes: true }),
-      success_url: `${base}/welcome?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${base}/pricing`,
-    });
+    const session = await stripe.checkout.sessions.create(params);
     return json({ url: session.url }, 200);
   } catch (err) {
     console.error("checkout session create failed:", err);
