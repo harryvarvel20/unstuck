@@ -6,10 +6,13 @@ import { FeedView } from "./FeedView";
 import { LibraryView } from "./LibraryView";
 import { MessagesView } from "./MessagesView";
 import { PeopleView } from "./PeopleView";
+import { HandlePicker } from "./HandlePicker";
 import { capture } from "@/lib/analytics";
 
 export interface SocialProfileDto {
   handle: string;
+  handleSet: boolean;
+  handleChangedAt: string | null;
   displayName: string | null;
   defaultVisibility: "private" | "friends" | "public";
   anonPublic: boolean;
@@ -169,9 +172,8 @@ export function ActivityCenter({
           </li>
         </ul>
         <p className="mt-4 text-sm text-muted">
-          Your handle is{" "}
-          <span className="font-semibold text-accent">@{profile.handle}</span> —
-          share it with people you trust so they can add you.
+          Next, you&apos;ll pick a name for this space — it&apos;s all anyone
+          here sees, never your real name.
         </p>
         <button
           type="button"
@@ -188,6 +190,11 @@ export function ActivityCenter({
         </Link>
       </div>
     );
+  }
+
+  // ---- First entry: choose a name before posting/commenting (Y1) -----
+  if (!profile.handleSet) {
+    return <HandlePicker mode="first" onDone={() => void refreshProfile()} />;
   }
 
   // ---- Quiet mode: the whole layer sleeps until re-enabled -----------
@@ -256,6 +263,7 @@ export function ActivityCenter({
           <PeopleView
             profile={profile}
             onProfileChange={patchProfile}
+            onRefresh={refreshProfile}
             onMessage={async (friendId) => {
               const res = await fetch("/api/social/dms", {
                 method: "POST",

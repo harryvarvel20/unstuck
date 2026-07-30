@@ -28,6 +28,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   try {
     const ctx = await getSocialContext();
     requirePro(ctx);
+    if (!ctx.profile.handle_set) return json({ error: "handle_required" }, 409);
     if (!(await checkSocialBurst(ctx)))
       return json({ error: "rate_limited" }, 429);
     const parsed = createSchema.safeParse(await req.json().catch(() => ({})));

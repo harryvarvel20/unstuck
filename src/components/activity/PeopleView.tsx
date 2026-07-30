@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { SocialProfileDto } from "./ActivityCenter";
 import { capture } from "@/lib/analytics";
 import { PhotoAttach } from "./PhotoAttach";
+import { HandlePicker } from "./HandlePicker";
 
 interface FriendRow {
   id: string;
@@ -73,10 +74,12 @@ async function post(url: string, body: unknown): Promise<Response> {
 export function PeopleView({
   profile,
   onProfileChange,
+  onRefresh,
   onMessage,
 }: {
   profile: SocialProfileDto;
   onProfileChange: (patch: Record<string, unknown>) => Promise<void>;
+  onRefresh: () => Promise<void>;
   onMessage: (friendId: string) => void;
 }) {
   const [data, setData] = useState<FriendsPayload | null>(null);
@@ -127,7 +130,11 @@ export function PeopleView({
         friends={data?.friends ?? []}
         onChanged={refresh}
       />
-      <SettingsCard profile={profile} onProfileChange={onProfileChange} />
+      <SettingsCard
+        profile={profile}
+        onProfileChange={onProfileChange}
+        onRefresh={onRefresh}
+      />
     </div>
   );
 }
@@ -899,11 +906,14 @@ function BuddyCard({
 function SettingsCard({
   profile,
   onProfileChange,
+  onRefresh,
 }: {
   profile: SocialProfileDto;
   onProfileChange: (patch: Record<string, unknown>) => Promise<void>;
+  onRefresh: () => Promise<void>;
 }) {
   const [name, setName] = useState(profile.displayName ?? "");
+  const [changingHandle, setChangingHandle] = useState(false);
 
   function Toggle({
     label,
@@ -934,6 +944,37 @@ function SettingsCard({
 
   return (
     <Card title="Social settings">
+      {changingHandle ? (
+        <div className="mb-4">
+          <HandlePicker
+            mode="change"
+            onDone={() => {
+              setChangingHandle(false);
+              void onRefresh();
+            }}
+            onCancel={() => setChangingHandle(false)}
+          />
+        </div>
+      ) : (
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <span className="min-w-0">
+            <span className="block text-sm font-medium text-text">
+              Your name here
+            </span>
+            <span className="block truncate text-sm text-accent">
+              @{profile.handle}
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setChangingHandle(true)}
+            className="flex-shrink-0 rounded-full border border-border px-3.5 py-1.5 text-sm font-medium text-muted transition-colors hover:border-accent/50 hover:text-text"
+          >
+            Change
+          </button>
+        </div>
+      )}
+
       <label className="block text-sm font-medium text-muted">
         Display name (what friends see)
       </label>

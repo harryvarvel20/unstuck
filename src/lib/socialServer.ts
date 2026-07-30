@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createSupabaseServer } from "./supabase/server";
 import { getServiceClient } from "./supabaseServer";
 import { checkBurst, type RequestIdentity } from "./quota";
+import { suggestHandle } from "./username";
 
 /**
  * Server core for the Activity Center (Phase U).
@@ -20,6 +21,11 @@ import { checkBurst, type RequestIdentity } from "./quota";
 export interface SocialProfile {
   user_id: string;
   handle: string;
+  /** Normalised lowercase uniqueness key (case-insensitive). */
+  handle_key: string;
+  /** True once the person has actively chosen their name (Y1). */
+  handle_set: boolean;
+  handle_changed_at: string | null;
   display_name: string | null;
   default_visibility: "private" | "friends" | "public";
   anon_public: boolean;
@@ -35,50 +41,6 @@ export interface SocialContext {
   userId: string;
   plan: "free" | "pro";
   profile: SocialProfile;
-}
-
-const ADJECTIVES = [
-  "bright",
-  "calm",
-  "steady",
-  "quick",
-  "gentle",
-  "sunny",
-  "quiet",
-  "bold",
-  "mellow",
-  "spark",
-  "cosy",
-  "brave",
-  "swift",
-  "warm",
-  "lucid",
-  "merry",
-];
-const NOUNS = [
-  "otter",
-  "fox",
-  "wren",
-  "lark",
-  "maple",
-  "comet",
-  "pebble",
-  "willow",
-  "ember",
-  "harbor",
-  "meadow",
-  "drift",
-  "summit",
-  "clover",
-  "breeze",
-  "tide",
-];
-
-function generateHandle(): string {
-  const a = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
-  const n = NOUNS[Math.floor(Math.random() * NOUNS.length)];
-  const num = Math.floor(100 + Math.random() * 900);
-  return `${a}-${n}-${num}`;
 }
 
 /** Order a user pair canonically (schema requires user_a < user_b). */
@@ -122,11 +84,14 @@ export async function getSocialContext(): Promise<SocialContext> {
     .maybeSingle();
 
   if (!profile) {
-    // First touch: mint a handle (retry on the unlikely collision).
-    for (let i = 0; i < 4 && !profile; i++) {
+    // First touch: mint a placeholder handle (valid + non-PII). handle_set stays
+    // false, so the person is prompted to choose before they can post/comment.
+    // Retry on the unlikely collision against the case-insensitive key.
+    for (let i = 0; i < 5 && !profile; i++) {
+      const h = suggestHandle();
       const { data: created } = await db
         .from("social_profiles")
-        .insert({ user_id: user.id, handle: generateHandle() })
+        .insert({ user_id: user.id, handle: h, handle_key: h })
         .select("*")
         .maybeSingle();
       if (created) profile = created;

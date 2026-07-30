@@ -32,6 +32,8 @@ export async function GET(): Promise<Response> {
     return json({
       profile: {
         handle: profile.handle,
+        handleSet: profile.handle_set,
+        handleChangedAt: profile.handle_changed_at,
         displayName: profile.display_name,
         defaultVisibility: profile.default_visibility,
         anonPublic: profile.anon_public,
