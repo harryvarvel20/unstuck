@@ -4,6 +4,57 @@ Behavioural changes and refactors, newest first. Purely internal/security
 fixes with no user-visible behaviour change are not listed here — see
 `reports/SECURITY-REPORT.md` and git history for those.
 
+## Phase Y — Activity Center, navigation & Parents fixes
+
+### Y1 — user-chosen usernames on the Activity Center
+
+**Before:** handles were auto-generated (`bright-otter-472`) and could never be
+changed; the first-run screen only displayed the random handle.
+**Now:** on first entry you **pick a name** (validated + unique, case-insensitive)
+and can change it once every 30 days; the old name is reserved for a cool-down
+so it can't be grabbed to impersonate you. **You must choose a name before you
+can post or comment** (`handle_required`, enforced server-side). Existing
+accounts keep their current handle but are prompted once. Migration `0021`.
+
+### Y2 — Home "Open the Toolkit" card
+
+The route into the tools on Home is now an unmistakable **navigation card**
+(compass + chevron, link semantics), not a text box that looked like the
+"Make it doable" composer. The AI Navigator input still lives on the Toolkit.
+
+### Y3 — Parents home no longer renders blank
+
+**Before:** with Parents Mode enabled but no child added (a return visit, or
+after deleting the last child), the Parents screen rendered only a heading.
+**Now:** that state shows a real **"Add your child to get started"** empty state.
+(The situation hub + toolbox were already built; this was an unhandled state.)
+
+### Y4 — Parents space in the Activity Center
+
+A separate **Parents** space (shown only with Parents Mode on) for "what worked
+with my kid" wins and playbooks, kept entirely apart from the main wins feed.
+Child-safety is server-enforced: **no photos** on parent posts, safeguarding
+routing on every field, and parent posts **never** enter the free public
+library. Copy steers to the parent's own strategy, not the child.
+
+### Y5 — everyone's wins, comment moderation, and search
+
+- **Public wins**: the feed's new **Public** scope surfaces everyone's public
+  wins (finite, reverse-chron, no ranking) — not just friends + the library.
+- **Comments**: each comment can now be **deleted** (yours, or any on your post)
+  or **reported**; the existing tone-guard nudge and crisis routing stay.
+- **Search** (`/api/social/search`): real full-text + fuzzy search across win
+  text, captions, playbook "what worked", and tags — not just tags. Visibility
+  is enforced inside a service-role-only `search_posts` function, so results
+  can never leak private/friends-only content. Migration `0022`.
+
+### Y6 — feed scope selector (behavioural change)
+
+A **Show: Friends · Public · Just me** selector filters what you view (distinct
+from the per-post "who can see this"). **Change of behaviour:** the **Friends**
+view now shows only friends' wins; **your own** posts (including private ones)
+live under **Just me**. Scope is enforced server-side and remembered per space.
+
 ## Phase X1 — security hardening (branch `phase-x-harden-refinish`)
 
 ### Behavioural change: content reports no longer auto-hide on the first report

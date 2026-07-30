@@ -25,6 +25,7 @@ export async function GET(req: NextRequest): Promise<Response> {
       "id, user_id, win_text, caption, tags, playbook, anon, photo_path, created_at",
     )
     .eq("visibility", "public")
+    .eq("space", "main") // parent-space posts never enter the public library
     .eq("flagged", false)
     .not("playbook", "is", null)
     .order("created_at", { ascending: false })

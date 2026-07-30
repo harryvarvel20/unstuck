@@ -24,10 +24,11 @@ export default async function ActivityPage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("plan")
+    .select("plan, parents_mode")
     .eq("id", user.id)
     .maybeSingle();
   const isPro = profile?.plan === "pro";
+  const parentsMode = Boolean(profile?.parents_mode);
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col lg:max-w-2xl px-4 py-6 sm:px-6 sm:py-10">
@@ -45,6 +46,7 @@ export default async function ActivityPage({
         <div className="mt-6">
           <ActivityCenter
             isPro={isPro}
+            parentsMode={parentsMode}
             initialTab={tab}
             sharePrefill={share ? share.slice(0, 300) : undefined}
           />

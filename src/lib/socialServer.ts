@@ -40,6 +40,8 @@ export interface SocialContext {
   db: SupabaseClient;
   userId: string;
   plan: "free" | "pro";
+  /** Whether the caller has Parents Mode enabled (gates the parents space). */
+  parentsMode: boolean;
   profile: SocialProfile;
 }
 
@@ -72,10 +74,11 @@ export async function getSocialContext(): Promise<SocialContext> {
 
   const { data: planRow } = await db
     .from("profiles")
-    .select("plan")
+    .select("plan, parents_mode")
     .eq("id", user.id)
     .maybeSingle();
   const plan: "free" | "pro" = planRow?.plan === "pro" ? "pro" : "free";
+  const parentsMode = Boolean(planRow?.parents_mode);
 
   let { data: profile } = await db
     .from("social_profiles")
@@ -99,7 +102,13 @@ export async function getSocialContext(): Promise<SocialContext> {
     if (!profile) throw new SocialError(500, "profile");
   }
 
-  return { db, userId: user.id, plan, profile: profile as SocialProfile };
+  return {
+    db,
+    userId: user.id,
+    plan,
+    parentsMode,
+    profile: profile as SocialProfile,
+  };
 }
 
 /** Participation in the Activity Center is Pro (viewing the public library is not). */
@@ -313,4 +322,136 @@ export async function signPhotos(
     if (item.signedUrl && item.path) out.set(item.path, item.signedUrl);
   }
   return out;
+}
+
+/* ---- Post hydration -----------------------------------------------------
+   Shared by the feed and search so both return identical, safe post shapes:
+   named-face reactions (never a count), a small bounded comment list, a signed
+   photo URL, and an author that honours anonymous public posts and blocks. */
+
+export interface RawPost {
+  id: string;
+  user_id: string;
+  win_text: string;
+  caption: string | null;
+  tags: string[] | null;
+  photo_path: string | null;
+  visibility: string;
+  anon: boolean;
+  comments_off: boolean;
+  comments_friends_only: boolean;
+  playbook: unknown;
+  created_at: string;
+  space?: string;
+}
+
+export interface PostDto {
+  id: string;
+  mine: boolean;
+  author: string;
+  winText: string;
+  caption: string | null;
+  tags: string[];
+  photoUrl: string | null;
+  visibility: string;
+  commentsOff: boolean;
+  playbook: unknown;
+  createdAt: string;
+  space: string;
+  reactions: { name: string; kind: string; mine: boolean }[];
+  comments: { id: string; name: string; content: string; mine: boolean }[];
+}
+
+export const POST_FIELDS =
+  "id, user_id, win_text, caption, tags, photo_path, visibility, anon, comments_off, comments_friends_only, playbook, space, created_at";
+
+export async function hydratePosts(
+  db: SupabaseClient,
+  rows: RawPost[],
+  userId: string,
+  blocked: Set<string>,
+): Promise<PostDto[]> {
+  if (rows.length === 0) return [];
+  const ids = rows.map((p) => p.id);
+
+  const [{ data: rx }, { data: cm }] = await Promise.all([
+    db
+      .from("post_reactions")
+      .select("post_id, user_id, kind")
+      .in("post_id", ids),
+    db
+      .from("post_comments")
+      .select("id, post_id, user_id, content, created_at")
+      .in("post_id", ids)
+      .eq("flagged", false)
+      .order("created_at", { ascending: true }),
+  ]);
+
+  const peopleIds = [
+    ...(rx ?? []).map((r) => r.user_id),
+    ...(cm ?? []).map((c) => c.user_id),
+    ...rows.map((p) => p.user_id),
+  ];
+  const cards = await authorCards(db, peopleIds);
+  const photoMap = await signPhotos(
+    db,
+    rows.map((p) => p.photo_path),
+  );
+
+  const reactions: Record<
+    string,
+    { name: string; kind: string; mine: boolean }[]
+  > = {};
+  const comments: Record<
+    string,
+    { id: string; name: string; content: string; mine: boolean }[]
+  > = {};
+
+  for (const r of rx ?? []) {
+    if (blocked.has(r.user_id)) continue;
+    (reactions[r.post_id] ??= []).push({
+      name:
+        r.user_id === userId
+          ? "you"
+          : (cards.get(r.user_id)?.name ?? "someone"),
+      kind: r.kind,
+      mine: r.user_id === userId,
+    });
+  }
+  for (const c of cm ?? []) {
+    if (blocked.has(c.user_id)) continue;
+    const list = (comments[c.post_id] ??= []);
+    if (list.length >= 8) continue; // comments stay small by design
+    list.push({
+      id: c.id,
+      name:
+        c.user_id === userId
+          ? "you"
+          : (cards.get(c.user_id)?.name ?? "someone"),
+      content: c.content,
+      mine: c.user_id === userId,
+    });
+  }
+
+  return rows.map((p) => ({
+    id: p.id,
+    mine: p.user_id === userId,
+    author:
+      p.user_id === userId
+        ? "you"
+        : p.anon
+          ? "someone with ADHD"
+          : (cards.get(p.user_id)?.name ?? "someone"),
+    winText: p.win_text,
+    caption: p.caption,
+    tags: p.tags ?? [],
+    photoUrl: p.photo_path ? (photoMap.get(p.photo_path) ?? null) : null,
+    visibility: p.visibility,
+    commentsOff: p.comments_off,
+    playbook: p.playbook,
+    createdAt: p.created_at,
+    space: p.space ?? "main",
+    reactions: reactions[p.id] ?? [],
+    comments: comments[p.id] ?? [],
+  }));
 }

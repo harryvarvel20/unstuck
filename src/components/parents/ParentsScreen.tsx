@@ -10,10 +10,10 @@ import { ParentsHub } from "./ParentsHub";
 const ACTIVE_KEY = "adhv-active-child";
 
 /**
- * Parents Mode home (W1): the calm opt-in, adding a child (name optional, age
- * band required, what's-hardest optional), and a simple child switcher. The
- * situation-first hub and tools arrive in W2+ — for now this is placement,
- * onboarding and child management.
+ * Parents Mode home: the calm opt-in, adding a child (name optional, age band
+ * required, what's-hardest optional), a child switcher, and — once a child
+ * exists — the situation-first hub + toolbox (ParentsHub). Every state has a
+ * real surface: opt-in, add-your-first-child, or the hub. Never a blank pane.
  */
 export function ParentsScreen({
   isPro,
@@ -193,6 +193,29 @@ export function ParentsScreen({
           </div>
           <ParentsHub key={active.id} child={active} />
         </>
+      )}
+
+      {/* Enabled but no child yet: a real empty state, never a blank pane. */}
+      {!active && !adding && (
+        <div className="glass mt-6 rounded-3xl p-6 text-center shadow-soft">
+          <div className="text-3xl" aria-hidden>
+            👶
+          </div>
+          <p className="mt-3 font-display text-lg font-semibold text-text">
+            Add your child to get started
+          </p>
+          <p className="mt-1.5 text-sm text-muted">
+            The age band tailors every plan and tool. It stays on your account
+            only, and deletes in one tap.
+          </p>
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="grad-primary mt-4 inline-block rounded-2xl px-6 py-3 font-semibold shadow-soft"
+          >
+            Add a child
+          </button>
+        </div>
       )}
 
       {/* Add-child sheet */}

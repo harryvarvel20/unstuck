@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FLASHPOINTS, type Flashpoint } from "@/lib/parentsContent";
 import { capture } from "@/lib/analytics";
 import type { Child } from "@/lib/parents";
@@ -33,6 +33,10 @@ export function ParentsHub({ child }: { child: Child }) {
     () => FLASHPOINTS.filter((f) => f.bands.includes(child.ageBand)),
     [child.ageBand],
   );
+
+  useEffect(() => {
+    capture("parents_home_viewed", { ageBand: child.ageBand });
+  }, [child.ageBand]);
 
   function pick(f: Flashpoint) {
     if (f.action === "plan") {

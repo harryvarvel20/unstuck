@@ -39,6 +39,26 @@ interface Post {
   comments: Comment[];
 }
 
+type Scope = "friends" | "public" | "just_me";
+type Space = "main" | "parents";
+
+const SCOPES: { key: Scope; label: string }[] = [
+  { key: "friends", label: "Friends" },
+  { key: "public", label: "Public" },
+  { key: "just_me", label: "Just me" },
+];
+
+const SEARCH_EXAMPLES = [
+  "getting out of bed",
+  "the dreaded email",
+  "cleaned the kitchen",
+];
+const SEARCH_EXAMPLES_PARENTS = [
+  "morning routine",
+  "homework meltdown",
+  "bedtime",
+];
+
 const REACTION_EMOJI: Record<string, string> = {
   clap: "👏",
   heart: "💛",
@@ -55,24 +75,105 @@ function timeAgo(iso: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-/** The wins feed: finite, reverse-chron, ends with "you're all caught up". */
-export function FeedView({ sharePrefill }: { sharePrefill?: string }) {
+/**
+ * The wins feed: finite, reverse-chron, ends with "you're all caught up".
+ * A scope selector (Friends / Public / Just me — Y6) filters WHAT YOU VIEW,
+ * enforced server-side, and is deliberately distinct from the per-post "who
+ * can see this" control. Caption/how-to search (Y5) sits above it. In the
+ * parents space (Y4) the copy steers to the parent's own strategy.
+ */
+export function FeedView({
+  sharePrefill,
+  space = "main",
+}: {
+  sharePrefill?: string;
+  space?: Space;
+}) {
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [composing, setComposing] = useState(Boolean(sharePrefill));
+  const [scope, setScope] = useState<Scope>("friends");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Post[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [crisis, setCrisis] = useState<string | null>(null);
+
+  const storeKey = `adhv-feed-scope-${space}`;
+
+  // Restore this space's last-used scope.
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem(storeKey);
+      if (s === "friends" || s === "public" || s === "just_me") setScope(s);
+    } catch {
+      /* noop */
+    }
+  }, [storeKey]);
 
   const refresh = useCallback(async () => {
-    const res = await fetch("/api/social/posts");
+    setPosts(null);
+    const res = await fetch(`/api/social/posts?scope=${scope}&space=${space}`);
     if (res.ok) {
       const body = (await res.json()) as { posts: Post[] };
       setPosts(body.posts);
     } else {
       setPosts([]);
     }
-  }, []);
+  }, [scope, space]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  function changeScope(s: Scope) {
+    if (s === scope) return;
+    setScope(s);
+    try {
+      localStorage.setItem(storeKey, s);
+    } catch {
+      /* noop */
+    }
+    capture("feed_scope_changed", { scope: s, space });
+  }
+
+  // Debounced search (server-side; RLS-respecting).
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setResults(null);
+      setCrisis(null);
+      return;
+    }
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/social/search?q=${encodeURIComponent(q)}&space=${space}`,
+        );
+        const body = (await res.json()) as {
+          posts?: Post[];
+          crisis?: boolean;
+          message?: string;
+        };
+        if (body.crisis && body.message) {
+          setCrisis(body.message);
+          setResults([]);
+        } else {
+          setCrisis(null);
+          setResults(body.posts ?? []);
+          capture("activity_search_performed", { len: q.length, space });
+        }
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [query, space]);
+
+  const isParents = space === "parents";
+  const searching2 = query.trim().length >= 2;
+  const examples = isParents ? SEARCH_EXAMPLES_PARENTS : SEARCH_EXAMPLES;
 
   return (
     <div>
@@ -81,12 +182,13 @@ export function FeedView({ sharePrefill }: { sharePrefill?: string }) {
         onClick={() => setComposing(true)}
         className="grad-primary w-full rounded-2xl px-5 py-3.5 font-semibold shadow-soft"
       >
-        Share a win
+        {isParents ? "Share what worked" : "Share a win"}
       </button>
 
       {composing && (
         <ShareWinSheet
           prefill={sharePrefill}
+          space={space}
           onClose={() => setComposing(false)}
           onShared={() => {
             setComposing(false);
@@ -95,36 +197,170 @@ export function FeedView({ sharePrefill }: { sharePrefill?: string }) {
         />
       )}
 
-      {posts === null && (
-        <div className="mt-4 flex flex-col gap-3">
-          <div className="skeleton h-28 rounded-3xl" />
-          <div className="skeleton h-28 rounded-3xl" />
-        </div>
-      )}
+      {/* Search (Y5.3) */}
+      <div className="mt-3">
+        <label htmlFor="feed-search" className="sr-only">
+          Search {isParents ? "parent playbooks" : "wins and how-tos"}
+        </label>
+        <input
+          id="feed-search"
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value.slice(0, 80))}
+          placeholder={
+            isParents ? "Search parent playbooks…" : "Search wins and how-tos…"
+          }
+          className="w-full rounded-full border border-border bg-surface px-4 py-2.5 text-sm text-text placeholder:text-muted/60 focus:border-accent focus:outline-none"
+        />
+      </div>
 
-      {posts !== null && posts.length === 0 && (
-        <div className="mt-6 rounded-3xl border border-border bg-surface p-6 text-center">
-          <p className="text-text">It&apos;s quiet in here — in a good way.</p>
-          <p className="mt-2 text-sm text-muted">
-            Add a friend from the People tab, or share your first win. Small
-            counts double in here.
-          </p>
-        </div>
-      )}
+      {searching2 ? (
+        <SearchResultsView
+          results={results}
+          searching={searching}
+          crisis={crisis}
+          examples={examples}
+          onChange={() => {
+            // a search-result action (react/comment/report) refreshes the feed
+            void refresh();
+          }}
+        />
+      ) : (
+        <>
+          {/* Scope selector (Y6) — "what you're viewing", not "who can see". */}
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-xs font-medium text-muted">Show:</span>
+            <div
+              role="tablist"
+              aria-label="Whose wins to show"
+              className="flex flex-1 gap-1 rounded-full bg-surface/60 p-1"
+            >
+              {SCOPES.map((s) => (
+                <button
+                  key={s.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={scope === s.key}
+                  onClick={() => changeScope(s.key)}
+                  className={`flex-1 rounded-full px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                    scope === s.key
+                      ? "bg-surface-2 text-text shadow-soft"
+                      : "text-muted hover:text-text"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      <ul className="mt-4 flex flex-col gap-4">
-        {(posts ?? []).map((p) => (
-          <PostCard key={p.id} post={p} onChange={refresh} />
-        ))}
-      </ul>
+          {posts === null && (
+            <div className="mt-4 flex flex-col gap-3">
+              <div className="skeleton h-28 rounded-3xl" />
+              <div className="skeleton h-28 rounded-3xl" />
+            </div>
+          )}
 
-      {posts !== null && posts.length > 0 && (
-        <p className="mt-8 text-center text-sm text-muted">
-          ✨ You&apos;re all caught up. Nothing else to scroll — go be somewhere
-          nice.
-        </p>
+          {posts !== null && posts.length === 0 && (
+            <ScopeEmptyState scope={scope} isParents={isParents} />
+          )}
+
+          <ul className="mt-4 flex flex-col gap-4">
+            {(posts ?? []).map((p) => (
+              <PostCard key={p.id} post={p} onChange={refresh} />
+            ))}
+          </ul>
+
+          {posts !== null && posts.length > 0 && (
+            <p className="mt-8 text-center text-sm text-muted">
+              ✨ You&apos;re all caught up. Nothing else to scroll — go be
+              somewhere nice.
+            </p>
+          )}
+        </>
       )}
     </div>
+  );
+}
+
+function ScopeEmptyState({
+  scope,
+  isParents,
+}: {
+  scope: Scope;
+  isParents: boolean;
+}) {
+  const copy: Record<Scope, { body: string; cta?: string }> = {
+    friends: {
+      body: "No wins from friends yet.",
+      cta: "Add a friend from the People tab.",
+    },
+    public: {
+      body: isParents
+        ? "No public parent playbooks yet — be the first to share what worked."
+        : "No public wins yet — be the first to share one.",
+    },
+    just_me: {
+      body: "You haven't shared anything here yet.",
+      cta: "Share your first win — small counts double.",
+    },
+  };
+  const c = copy[scope];
+  return (
+    <div className="mt-4 rounded-3xl border border-border bg-surface p-6 text-center">
+      <p className="text-text">{c.body}</p>
+      {c.cta && <p className="mt-2 text-sm text-muted">{c.cta}</p>}
+    </div>
+  );
+}
+
+function SearchResultsView({
+  results,
+  searching,
+  crisis,
+  examples,
+  onChange,
+}: {
+  results: Post[] | null;
+  searching: boolean;
+  crisis: string | null;
+  examples: string[];
+  onChange: () => void;
+}) {
+  if (crisis) {
+    return (
+      <div
+        className="mt-4 animate-fade-in rounded-3xl border border-accent/40 bg-accent-soft/70 p-5"
+        role="status"
+      >
+        <div className="mb-2 text-2xl">💛</div>
+        <p className="text-[1.02rem] leading-relaxed text-text">{crisis}</p>
+      </div>
+    );
+  }
+  if (searching && results === null) {
+    return (
+      <div className="mt-4 flex flex-col gap-3">
+        <div className="skeleton h-24 rounded-3xl" />
+      </div>
+    );
+  }
+  if (results !== null && results.length === 0) {
+    return (
+      <div className="mt-4 rounded-3xl border border-border bg-surface p-6 text-center">
+        <p className="text-text">Nothing matched that yet.</p>
+        <p className="mt-2 text-sm text-muted">
+          Try something like {examples.map((e) => `“${e}”`).join(", ")}.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <ul className="mt-4 flex flex-col gap-4">
+      {(results ?? []).map((p) => (
+        <PostCard key={p.id} post={p} onChange={onChange} />
+      ))}
+    </ul>
   );
 }
 
@@ -187,6 +423,28 @@ function PostCard({ post, onChange }: { post: Post; onChange: () => void }) {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function deleteComment(id: string) {
+    await fetch("/api/social/comments", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    onChange();
+  }
+
+  async function reportComment(id: string) {
+    await fetch("/api/social/safety", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        action: "report",
+        subjectType: "comment",
+        subjectId: id,
+      }),
+    });
+    capture("comment_reported");
   }
 
   const mine = post.reactions.find((r) => r.mine);
@@ -317,13 +575,27 @@ function PostCard({ post, onChange }: { post: Post; onChange: () => void }) {
         )}
       </div>
 
-      {/* Comments: small, kind, bounded. */}
+      {/* Comments: small, kind, bounded — each reportable/deletable. */}
       {post.comments.length > 0 && (
         <ul className="mt-3 flex flex-col gap-1.5 border-t border-border/60 pt-3">
           {post.comments.map((c) => (
-            <li key={c.id} className="text-sm">
-              <span className="font-semibold text-text">{c.name}</span>{" "}
-              <span className="text-muted">{c.content}</span>
+            <li key={c.id} className="group flex items-start gap-2 text-sm">
+              <span className="min-w-0 flex-1">
+                <span className="font-semibold text-text">{c.name}</span>{" "}
+                <span className="text-muted">{c.content}</span>
+              </span>
+              {c.mine || post.mine ? (
+                <button
+                  type="button"
+                  onClick={() => void deleteComment(c.id)}
+                  className="flex-shrink-0 text-xs text-muted/70 opacity-0 transition-opacity hover:text-accent group-hover:opacity-100"
+                  aria-label="Delete comment"
+                >
+                  delete
+                </button>
+              ) : (
+                <ReportInline onReport={() => void reportComment(c.id)} />
+              )}
             </li>
           ))}
         </ul>
@@ -430,6 +702,23 @@ function PostCard({ post, onChange }: { post: Post; onChange: () => void }) {
   );
 }
 
+function ReportInline({ onReport }: { onReport: () => void }) {
+  const [done, setDone] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        onReport();
+        setDone(true);
+      }}
+      className="flex-shrink-0 text-xs text-muted/70 opacity-0 transition-opacity hover:text-accent group-hover:opacity-100"
+      aria-label="Report comment"
+    >
+      {done ? "reported" : "report"}
+    </button>
+  );
+}
+
 /** "Try this myself" — copies a playbook into your own task list. */
 export function TryButton({
   winText,
@@ -498,13 +787,16 @@ export function TryButton({
 /** Share-a-win composer — sharing is explicit, always. */
 function ShareWinSheet({
   prefill,
+  space = "main",
   onClose,
   onShared,
 }: {
   prefill?: string;
+  space?: Space;
   onClose: () => void;
   onShared: () => void;
 }) {
+  const isParents = space === "parents";
   const [winText, setWinText] = useState(prefill ?? "");
   const [caption, setCaption] = useState("");
   const [tags, setTags] = useState("");
@@ -600,7 +892,8 @@ function ShareWinSheet({
           anon: visibility === "public" ? anon : false,
           commentsOff,
           playbook,
-          photoBase64: photo ?? undefined,
+          photoBase64: isParents ? undefined : (photo ?? undefined),
+          space,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -609,7 +902,11 @@ function ShareWinSheet({
         return;
       }
       if (res.ok) {
-        capture("win_shared", { visibility, playbook: Boolean(playbook) });
+        capture("win_shared", {
+          visibility,
+          playbook: Boolean(playbook),
+          space,
+        });
         onShared();
       } else {
         setNotice("Couldn't share just now — try again in a moment.");
@@ -624,7 +921,7 @@ function ShareWinSheet({
       className="fixed inset-0 z-50 overflow-y-auto bg-bg/90 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      aria-label="Share a win"
+      aria-label={isParents ? "Share what worked" : "Share a win"}
     >
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 py-5">
         <button
@@ -637,20 +934,26 @@ function ShareWinSheet({
 
         <div className="flex-1 pt-5">
           <h2 className="font-display text-2xl font-semibold text-text">
-            Share a win.
+            {isParents ? "Share what worked with your kid." : "Share a win."}
           </h2>
           <p className="mt-1.5 text-sm text-muted">
-            Small counts double here. Nothing posts until you hit share.
+            {isParents
+              ? "About YOUR strategy — the thing that finally helped. No child names, photos, or schools; keep it about what you did."
+              : "Small counts double here. Nothing posts until you hit share."}
           </p>
 
           <label className="mt-5 block text-sm font-medium text-muted">
-            What did you do?
+            {isParents ? "What worked?" : "What did you do?"}
           </label>
           <input
             value={winText}
             onChange={(e) => setWinText(e.target.value.slice(0, 300))}
             autoFocus
-            placeholder="e.g. finally sent the dentist email"
+            placeholder={
+              isParents
+                ? "e.g. a visual morning chart cut the battles"
+                : "e.g. finally sent the dentist email"
+            }
             className="mt-1.5 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-text placeholder:text-muted/60 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
 
@@ -662,12 +965,20 @@ function ShareWinSheet({
             onChange={(e) => setCaption(e.target.value.slice(0, 500))}
             rows={2}
             className="mt-1.5 w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-text placeholder:text-muted/60 focus:border-accent focus:outline-none"
-            placeholder="the backstory, the drama, the relief…"
+            placeholder={
+              isParents
+                ? "what changed, how you'll keep it going…"
+                : "the backstory, the drama, the relief…"
+            }
           />
 
           <label className="mt-4 block text-sm font-medium text-muted">
             Tags{" "}
-            <span className="font-normal">(optional, e.g. admin, laundry)</span>
+            <span className="font-normal">
+              {isParents
+                ? "(optional, e.g. mornings, homework)"
+                : "(optional, e.g. admin, laundry)"}
+            </span>
           </label>
           <input
             value={tags}
@@ -675,18 +986,21 @@ function ShareWinSheet({
             className="mt-1.5 w-full rounded-2xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus:border-accent focus:outline-none"
           />
 
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-muted">
-              Photo <span className="font-normal">(optional)</span>
-            </label>
-            <div className="mt-1.5">
-              <PhotoAttach
-                value={photo}
-                onChange={setPhoto}
-                label="Add a photo"
-              />
+          {/* No photos in the parents space — child-safety hard rule. */}
+          {!isParents && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-muted">
+                Photo <span className="font-normal">(optional)</span>
+              </label>
+              <div className="mt-1.5">
+                <PhotoAttach
+                  value={photo}
+                  onChange={setPhoto}
+                  label="Add a photo"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* The how — optional, and the heart of the library. */}
           <button

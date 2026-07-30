@@ -40,16 +40,19 @@ const TABS: { key: Tab; label: string }[] = [
  */
 export function ActivityCenter({
   isPro,
+  parentsMode = false,
   initialTab,
   sharePrefill,
 }: {
   isPro: boolean;
+  parentsMode?: boolean;
   initialTab?: string;
   sharePrefill?: string;
 }) {
   const [tab, setTab] = useState<Tab>(
     (TABS.some((t) => t.key === initialTab) ? initialTab : "feed") as Tab,
   );
+  const [space, setSpace] = useState<"main" | "parents">("main");
   const [profile, setProfile] = useState<SocialProfileDto | null>(null);
   const [pendingRequests, setPendingRequests] = useState(0);
   const [unseenBoosts, setUnseenBoosts] = useState(0);
@@ -222,63 +225,108 @@ export function ActivityCenter({
 
   return (
     <div>
-      <nav
-        aria-label="Activity sections"
-        className="flex gap-1.5 overflow-x-auto rounded-2xl bg-surface/60 p-1.5"
-      >
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setTab(t.key)}
-            aria-current={tab === t.key ? "page" : undefined}
-            className={`flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
-              tab === t.key
-                ? "bg-surface-2 text-text shadow-soft"
-                : "text-muted hover:text-text"
-            }`}
-          >
-            {t.label}
-            {t.key === "people" && pendingRequests > 0 && (
-              <span className="ml-1.5 text-xs font-medium text-accent">
-                new
-              </span>
-            )}
-            {t.key === "people" &&
-              pendingRequests === 0 &&
-              unseenBoosts > 0 && (
-                <span className="ml-1.5 text-xs font-medium text-accent">
-                  ✨
-                </span>
-              )}
-          </button>
-        ))}
-      </nav>
+      {/* Space switch (Y4): the Parents space is separate — parent content and
+          main wins never blend. Only shown when Parents Mode is on. */}
+      {parentsMode && (
+        <div
+          role="tablist"
+          aria-label="Activity space"
+          className="mb-4 flex gap-1 rounded-full border border-border bg-surface p-1"
+        >
+          {(
+            [
+              ["main", "Everyone"],
+              ["parents", "Parents"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={space === key}
+              onClick={() => {
+                setSpace(key);
+                if (key === "parents") capture("parents_feed_viewed");
+              }}
+              className={`flex-1 rounded-full px-3 py-2 text-sm font-semibold transition-colors ${
+                space === key
+                  ? "bg-accent text-accent-ink"
+                  : "text-muted hover:text-text"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
-      <div className="mt-5">
-        {tab === "feed" && <FeedView sharePrefill={sharePrefill} />}
-        {tab === "library" && <LibraryView isPro />}
-        {tab === "messages" && <MessagesView initialThreadId={openThread} />}
-        {tab === "people" && (
-          <PeopleView
-            profile={profile}
-            onProfileChange={patchProfile}
-            onRefresh={refreshProfile}
-            onMessage={async (friendId) => {
-              const res = await fetch("/api/social/dms", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ friendId }),
-              });
-              if (res.ok) {
-                const body = (await res.json()) as { threadId: string };
-                setOpenThread(body.threadId);
-                setTab("messages");
-              }
-            }}
-          />
-        )}
-      </div>
+      {space === "parents" ? (
+        <FeedView space="parents" />
+      ) : (
+        <>
+          <nav
+            aria-label="Activity sections"
+            className="flex gap-1.5 overflow-x-auto rounded-2xl bg-surface/60 p-1.5"
+          >
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTab(t.key)}
+                aria-current={tab === t.key ? "page" : undefined}
+                className={`flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
+                  tab === t.key
+                    ? "bg-surface-2 text-text shadow-soft"
+                    : "text-muted hover:text-text"
+                }`}
+              >
+                {t.label}
+                {t.key === "people" && pendingRequests > 0 && (
+                  <span className="ml-1.5 text-xs font-medium text-accent">
+                    new
+                  </span>
+                )}
+                {t.key === "people" &&
+                  pendingRequests === 0 &&
+                  unseenBoosts > 0 && (
+                    <span className="ml-1.5 text-xs font-medium text-accent">
+                      ✨
+                    </span>
+                  )}
+              </button>
+            ))}
+          </nav>
+
+          <div className="mt-5">
+            {tab === "feed" && (
+              <FeedView sharePrefill={sharePrefill} space="main" />
+            )}
+            {tab === "library" && <LibraryView isPro />}
+            {tab === "messages" && (
+              <MessagesView initialThreadId={openThread} />
+            )}
+            {tab === "people" && (
+              <PeopleView
+                profile={profile}
+                onProfileChange={patchProfile}
+                onRefresh={refreshProfile}
+                onMessage={async (friendId) => {
+                  const res = await fetch("/api/social/dms", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ friendId }),
+                  });
+                  if (res.ok) {
+                    const body = (await res.json()) as { threadId: string };
+                    setOpenThread(body.threadId);
+                    setTab("messages");
+                  }
+                }}
+              />
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

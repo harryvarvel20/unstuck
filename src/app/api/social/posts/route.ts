@@ -5,11 +5,12 @@ import {
   requirePro,
   friendIds,
   blockedSet,
-  authorCards,
+  hydratePosts,
   uploadSocialPhoto,
-  signPhotos,
   photoBase64Field,
   SOCIAL_BUCKET,
+  POST_FIELDS,
+  type RawPost,
   checkSocialBurst,
   jsonError,
   json,
@@ -17,139 +18,76 @@ import {
 import {
   containsCrisisLanguage,
   CRISIS_SIGNPOST,
+  childSafetyConcern,
+  CHILD_SAFETY_SIGNPOST,
   looksAbusive,
 } from "@/lib/safety";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type Scope = "friends" | "public" | "just_me";
+
 /**
- * GET /api/social/posts — the wins feed. Reverse-chronological, FINITE
- * (30 posts, then "you're all caught up"), friends + own posts only.
- * Reactions come back as named faces, never a number to chase.
+ * GET /api/social/posts?scope=friends|public|just_me&space=main|parents
+ *
+ * Reverse-chronological, FINITE (30 then "you're all caught up"). Scope is
+ * enforced SERVER-SIDE against explicit visibility filters (never a client
+ * filter over a wider set):
+ *  - friends  = wins shared WITH you by accepted mutual friends
+ *  - public   = everyone's public wins (Y5.1)
+ *  - just_me  = only your own posts, private ones included (your journal)
+ * The parents space (Y4) is only visible with Parents Mode on.
  */
-export async function GET(): Promise<Response> {
+export async function GET(req: NextRequest): Promise<Response> {
   try {
     const ctx = await getSocialContext();
     requirePro(ctx);
-    const { db, userId } = ctx;
+    const { db, userId, parentsMode } = ctx;
 
-    const [friends, blocked] = await Promise.all([
-      friendIds(db, userId, { excludeMutedByMe: true }),
-      blockedSet(db, userId),
-    ]);
-    const authors = [userId, ...friends.filter((f) => !blocked.has(f))];
+    const rawScope = req.nextUrl.searchParams.get("scope");
+    const scope: Scope =
+      rawScope === "public" || rawScope === "just_me" ? rawScope : "friends";
+    const space =
+      req.nextUrl.searchParams.get("space") === "parents" ? "parents" : "main";
 
-    const { data: posts } = await db
+    if (space === "parents" && !parentsMode) {
+      return json({ posts: [], caughtUp: true, scope, space });
+    }
+
+    const blocked = await blockedSet(db, userId);
+
+    let query = db
       .from("posts")
-      .select(
-        "id, user_id, win_text, caption, tags, photo_path, visibility, anon, comments_off, comments_friends_only, playbook, created_at",
-      )
-      .in("user_id", authors)
-      .in("visibility", ["friends", "public"])
+      .select(POST_FIELDS)
+      .eq("space", space)
       .eq("flagged", false)
       .order("created_at", { ascending: false })
       .limit(30);
 
-    // Own private posts still show to their author.
-    const { data: ownPrivate } = await db
-      .from("posts")
-      .select(
-        "id, user_id, win_text, caption, tags, photo_path, visibility, anon, comments_off, comments_friends_only, playbook, created_at",
-      )
-      .eq("user_id", userId)
-      .eq("visibility", "private")
-      .order("created_at", { ascending: false })
-      .limit(10);
-
-    const all = [...(posts ?? []), ...(ownPrivate ?? [])]
-      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-      .slice(0, 30);
-
-    const ids = all.map((p) => p.id);
-    const reactions: Record<
-      string,
-      { name: string; kind: string; mine: boolean }[]
-    > = {};
-    const comments: Record<
-      string,
-      { id: string; name: string; content: string; mine: boolean }[]
-    > = {};
-
-    if (ids.length > 0) {
-      const [{ data: rx }, { data: cm }] = await Promise.all([
-        db
-          .from("post_reactions")
-          .select("post_id, user_id, kind")
-          .in("post_id", ids),
-        db
-          .from("post_comments")
-          .select("id, post_id, user_id, content, created_at")
-          .in("post_id", ids)
-          .eq("flagged", false)
-          .order("created_at", { ascending: true }),
-      ]);
-      const peopleIds = [
-        ...(rx ?? []).map((r) => r.user_id),
-        ...(cm ?? []).map((c) => c.user_id),
-      ];
-      const cards = await authorCards(db, peopleIds);
-      for (const r of rx ?? []) {
-        if (blocked.has(r.user_id)) continue;
-        (reactions[r.post_id] ??= []).push({
-          name:
-            r.user_id === userId
-              ? "you"
-              : (cards.get(r.user_id)?.name ?? "someone"),
-          kind: r.kind,
-          mine: r.user_id === userId,
-        });
+    if (scope === "just_me") {
+      query = query.eq("user_id", userId); // your journal: every visibility
+    } else if (scope === "friends") {
+      const friends = (
+        await friendIds(db, userId, { excludeMutedByMe: true })
+      ).filter((f) => !blocked.has(f));
+      if (friends.length === 0) {
+        return json({ posts: [], caughtUp: true, scope, space });
       }
-      for (const c of cm ?? []) {
-        if (blocked.has(c.user_id)) continue;
-        const list = (comments[c.post_id] ??= []);
-        if (list.length >= 8) continue; // comments stay small by design
-        list.push({
-          id: c.id,
-          name:
-            c.user_id === userId
-              ? "you"
-              : (cards.get(c.user_id)?.name ?? "someone"),
-          content: c.content,
-          mine: c.user_id === userId,
-        });
-      }
+      query = query
+        .in("user_id", friends)
+        .in("visibility", ["friends", "public"]);
+    } else {
+      // public: everyone's public wins
+      query = query.eq("visibility", "public");
     }
 
-    const cards = await authorCards(
-      db,
-      all.map((p) => p.user_id),
-    );
-    const photoMap = await signPhotos(
-      db,
-      all.map((p) => p.photo_path),
-    );
-    return json({
-      posts: all.map((p) => ({
-        id: p.id,
-        mine: p.user_id === userId,
-        author:
-          p.user_id === userId
-            ? "you"
-            : (cards.get(p.user_id)?.name ?? "someone"),
-        winText: p.win_text,
-        caption: p.caption,
-        tags: p.tags ?? [],
-        photoUrl: p.photo_path ? (photoMap.get(p.photo_path) ?? null) : null,
-        visibility: p.visibility,
-        commentsOff: p.comments_off,
-        playbook: p.playbook,
-        createdAt: p.created_at,
-        reactions: reactions[p.id] ?? [],
-        comments: comments[p.id] ?? [],
-      })),
-      caughtUp: true, // finite by design — there is no page 2
-    });
+    const { data: rows } = await query;
+    let list = (rows ?? []) as RawPost[];
+    if (scope === "public") list = list.filter((p) => !blocked.has(p.user_id));
+
+    const posts = await hydratePosts(db, list, userId, blocked);
+    return json({ posts, caughtUp: true, scope, space });
   } catch (err) {
     return jsonError(err);
   }
@@ -179,6 +117,7 @@ const createSchema = z.object({
   commentsOff: z.boolean().default(false),
   playbook: playbookSchema.nullish(),
   photoBase64: photoBase64Field,
+  space: z.enum(["main", "parents"]).default("main"),
 });
 
 /** POST /api/social/posts — share a win. Sharing is ALWAYS explicit. */
@@ -193,7 +132,17 @@ export async function POST(req: NextRequest): Promise<Response> {
     if (!parsed.success) return json({ error: "invalid" }, 400);
     const p = parsed.data;
 
+    // Parents space (Y4): gated by Parents Mode, higher child-safety bar.
+    if (p.space === "parents" && !ctx.parentsMode) {
+      return json({ error: "parents_mode_required" }, 403);
+    }
+
     const combined = `${p.winText} ${p.caption ?? ""}`;
+    // Safeguarding first on parent posts (routes to child + adult resources),
+    // then the general crisis gate — both free, never AI/social output.
+    if (p.space === "parents" && childSafetyConcern(combined)) {
+      return json({ crisis: true, message: CHILD_SAFETY_SIGNPOST });
+    }
     if (containsCrisisLanguage(combined)) {
       return json({ crisis: true, message: CRISIS_SIGNPOST });
     }
@@ -204,9 +153,11 @@ export async function POST(req: NextRequest): Promise<Response> {
       visibility = "friends";
     }
 
-    const photoPath = p.photoBase64
-      ? await uploadSocialPhoto(ctx.db, ctx.userId, p.photoBase64)
-      : null;
+    // Child-safety hard rule: parent posts carry NO photos (no child faces).
+    const photoPath =
+      p.space !== "parents" && p.photoBase64
+        ? await uploadSocialPhoto(ctx.db, ctx.userId, p.photoBase64)
+        : null;
 
     const { data: created, error } = await ctx.db
       .from("posts")
@@ -220,6 +171,8 @@ export async function POST(req: NextRequest): Promise<Response> {
         comments_off: p.commentsOff,
         playbook: p.playbook ?? null,
         photo_path: photoPath,
+        space: p.space,
+        // Parent content gets a higher moderation bar (surfaced for review).
         flagged: looksAbusive(combined),
       })
       .select("id")
