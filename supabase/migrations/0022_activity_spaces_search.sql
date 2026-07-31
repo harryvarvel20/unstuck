@@ -28,16 +28,38 @@ create index if not exists posts_space_vis_idx
   on public.posts (space, visibility, created_at desc);
 
 -- Y5: weighted FTS document (win > caption/what-worked > tool/tags).
--- to_tsvector(regconfig, text) is IMMUTABLE, so this generated column is valid.
+-- Maintained by a trigger rather than a GENERATED column: array_to_string and
+-- the text-search config resolution are only STABLE, which Postgres rejects in
+-- a stored generated expression, but a trigger has no immutability requirement.
 alter table public.posts
-  add column if not exists search_doc tsvector
-  generated always as (
+  add column if not exists search_doc tsvector;
+
+create or replace function public.posts_search_doc_refresh()
+returns trigger language plpgsql as $$
+begin
+  new.search_doc :=
+    setweight(to_tsvector('english', coalesce(new.win_text, '')), 'A') ||
+    setweight(to_tsvector('english', coalesce(new.caption, '')), 'B') ||
+    setweight(to_tsvector('english', coalesce(new.playbook ->> 'whatWorked', '')), 'B') ||
+    setweight(to_tsvector('english', coalesce(new.playbook ->> 'tool', '')), 'C') ||
+    setweight(to_tsvector('english', coalesce(array_to_string(new.tags, ' '), '')), 'C');
+  return new;
+end;
+$$;
+
+drop trigger if exists posts_search_doc_trg on public.posts;
+create trigger posts_search_doc_trg
+  before insert or update of win_text, caption, playbook, tags
+  on public.posts
+  for each row execute function public.posts_search_doc_refresh();
+
+-- Backfill existing rows once.
+update public.posts set search_doc =
     setweight(to_tsvector('english', coalesce(win_text, '')), 'A') ||
     setweight(to_tsvector('english', coalesce(caption, '')), 'B') ||
     setweight(to_tsvector('english', coalesce(playbook ->> 'whatWorked', '')), 'B') ||
     setweight(to_tsvector('english', coalesce(playbook ->> 'tool', '')), 'C') ||
-    setweight(to_tsvector('english', coalesce(array_to_string(tags, ' '), '')), 'C')
-  ) stored;
+    setweight(to_tsvector('english', coalesce(array_to_string(tags, ' '), '')), 'C');
 create index if not exists posts_search_idx on public.posts using gin (search_doc);
 
 -- Trigram (typo/fuzzy tolerance) on the two most-searched free-text fields.
