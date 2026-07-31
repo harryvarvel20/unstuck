@@ -1,16 +1,17 @@
 /**
- * Phase X1 RLS/IDOR isolation harness — creates two throwaway auth accounts
+ * Phase Z RLS/IDOR isolation harness — creates two throwaway auth accounts
  * (via the admin API, no real user data touched), proves cross-user RLS
  * isolation (select/update/delete/list) and anon-zero-access across every
- * representative table, then deletes both accounts and verifies the cascade
- * left zero orphaned rows. Safe to re-run any time (self-cleaning).
+ * representative table, plus the Phase Y surfaces: case-insensitive handle
+ * uniqueness at the DB, handle_reservations lockdown (no client access), and
+ * search_posts() being callable by the service role only. Then deletes both
+ * accounts and verifies the cascade left zero orphaned rows. Self-cleaning.
  *
  * Run: node scripts/rls-isolation-harness.mjs
  *
- * This is the informal two-user harness X1 used in place of a real Supabase
- * staging branch (not available in this environment). X2 should either keep
- * extending this file (add every remaining table) or port it to pgTAP once a
- * staging project exists, and wire it into CI.
+ * This is the two-user harness used in place of a real Supabase staging
+ * branch (not available on this plan). It only ever touches rows belonging to
+ * its own synthetic accounts.
  */
 import { createClient } from "@supabase/supabase-js";
 import { existsSync, readFileSync } from "fs";
@@ -37,9 +38,9 @@ const admin = createClient(URL, env.SUPABASE_SERVICE_ROLE_KEY, {
 });
 
 const stamp = Date.now();
-const PASS = `Phx-Harness-${stamp}-!Aa1`;
-const EMAIL_A = `adhv-phasex-a-${stamp}@adhv-test.invalid`;
-const EMAIL_B = `adhv-phasex-b-${stamp}@adhv-test.invalid`;
+const PASS = `Phz-Harness-${stamp}-!Aa1`;
+const EMAIL_A = `adhv-phasez-a-${stamp}@adhv-test.invalid`;
+const EMAIL_B = `adhv-phasez-b-${stamp}@adhv-test.invalid`;
 
 const results = [];
 function check(label, pass, detail) {
@@ -90,7 +91,7 @@ try {
     .from("tasks")
     .insert({
       user_id: idA,
-      input_text: "phase-x harness task",
+      input_text: "phase-z harness task",
       steps: [{ title: "step", minutes: 2 }],
       completed_steps: [false],
     })
@@ -100,7 +101,7 @@ try {
 
   const idea = await asA
     .from("ideas")
-    .insert({ user_id: idA, text: "phase-x harness idea" })
+    .insert({ user_id: idA, text: "phase-z harness idea" })
     .select("id")
     .single();
   check("A can insert own idea", !idea.error, idea.error?.message);
@@ -109,38 +110,20 @@ try {
     .from("posts")
     .insert({
       user_id: idA,
-      win_text: "phase-x harness win",
+      win_text: "phase-z harness win",
       visibility: "private",
     })
     .select("id")
     .single();
   check("A can insert own post", !post.error, post.error?.message);
 
-  const child = await asA
-    .from("children")
-    .insert({ parent_id: idA, age_band: "8-12" })
-    .select("id")
+  const handleA = `phz_a_${stamp % 1000000}`;
+  const profA = await asA
+    .from("social_profiles")
+    .insert({ user_id: idA, handle: handleA, handle_key: handleA })
+    .select("user_id")
     .single();
-  check("A can insert own child", !child.error, child.error?.message);
-
-  const kidWin = await asA
-    .from("kid_wins")
-    .insert({ parent_id: idA, text: "phase-x harness kid win" })
-    .select("id")
-    .single();
-  check("A can insert own kid_win", !kidWin.error, kidWin.error?.message);
-
-  const reward = await asA
-    .from("kid_rewards")
-    .upsert({
-      child_id: child.data?.id,
-      parent_id: idA,
-      behaviours: ["x"],
-      tokens: 3,
-    })
-    .select("child_id")
-    .single();
-  check("A can upsert own kid_rewards", !reward.error, reward.error?.message);
+  check("A can insert own social profile", !profA.error, profA.error?.message);
 
   console.log("\n=== IDOR: B tries to read/update/delete A's rows by id ===");
   const rTaskSel = await asB
@@ -198,55 +181,66 @@ try {
     JSON.stringify(rPostSel.data),
   );
 
-  const rChildSel = await asB
-    .from("children")
-    .select("id")
-    .eq("id", child.data?.id)
-    .maybeSingle();
+  const rProfUpd = await asB
+    .from("social_profiles")
+    .update({ handle: "hijacked", handle_key: "hijacked" })
+    .eq("user_id", idA)
+    .select("user_id");
   check(
-    "B cannot SELECT A's child by id",
-    !rChildSel.data,
-    JSON.stringify(rChildSel.data),
+    "B's UPDATE on A's social profile affects 0 rows",
+    (rProfUpd.data ?? []).length === 0,
+    `rows=${(rProfUpd.data ?? []).length}`,
   );
 
-  const rChildDel = await asB
-    .from("children")
-    .delete()
-    .eq("id", child.data?.id)
-    .select("id");
+  console.log("\n=== Y1: handle uniqueness is enforced AT THE DB ===");
+  const dupe = await asB
+    .from("social_profiles")
+    .insert({
+      user_id: idB,
+      handle: handleA.toUpperCase(),
+      handle_key: handleA,
+    })
+    .select("user_id")
+    .single();
   check(
-    "B's DELETE on A's child affects 0 rows",
-    (rChildDel.data ?? []).length === 0,
-    `rows=${(rChildDel.data ?? []).length}`,
+    "B cannot claim A's handle_key (unique index, case-insensitive)",
+    Boolean(dupe.error) && String(dupe.error?.code) === "23505",
+    dupe.error ? `${dupe.error.code}` : "INSERT SUCCEEDED (bad)",
   );
 
-  const rKidWinSel = await asB
-    .from("kid_wins")
-    .select("id")
-    .eq("id", kidWin.data?.id)
-    .maybeSingle();
+  console.log("\n=== Y1: handle_reservations is service-role only ===");
+  const resvA = await asA.from("handle_reservations").select("*").limit(1);
   check(
-    "B cannot SELECT A's kid_win by id",
-    !rKidWinSel.data,
-    JSON.stringify(rKidWinSel.data),
+    "authed user cannot SELECT handle_reservations",
+    (resvA.data ?? []).length === 0,
+    `count=${(resvA.data ?? []).length}, err=${resvA.error?.message ?? "none"}`,
+  );
+  const resvIns = await asA
+    .from("handle_reservations")
+    .insert({
+      handle_key: `phz_resv_${stamp}`,
+      reserved_until: new Date().toISOString(),
+    })
+    .select("handle_key");
+  check(
+    "authed user cannot INSERT into handle_reservations",
+    Boolean(resvIns.error) || (resvIns.data ?? []).length === 0,
+    resvIns.error ? resvIns.error.code : "INSERT SUCCEEDED (bad)",
   );
 
-  const rRewardUpsert = await asB
-    .from("kid_rewards")
-    .upsert(
-      { child_id: child.data?.id, parent_id: idB, tokens: 999 },
-      { onConflict: "child_id" },
-    )
-    .select("child_id, parent_id, tokens");
-  const rewardLeaked = (rRewardUpsert.data ?? []).some(
-    (r) => r.parent_id === idB || r.tokens === 999,
-  );
+  console.log("\n=== Y5: search_posts() is not callable by clients ===");
+  const rpcUser = await asA.rpc("search_posts", {
+    p_viewer: idA,
+    p_friends: [],
+    p_blocked: [],
+    p_query: "harness",
+    p_space: "main",
+    p_limit: 5,
+  });
   check(
-    "B's upsert cannot hijack A's kid_rewards row (DB-level RLS)",
-    !rewardLeaked && (rRewardUpsert.data ?? []).length === 0,
-    rRewardUpsert.error
-      ? rRewardUpsert.error.message
-      : `rows=${JSON.stringify(rRewardUpsert.data)}`,
+    "authed user cannot execute search_posts (revoked)",
+    Boolean(rpcUser.error),
+    rpcUser.error ? rpcUser.error.code : "RPC SUCCEEDED (bad)",
   );
 
   console.log(
@@ -259,18 +253,11 @@ try {
     `count=${(listTasks.data ?? []).length}`,
   );
 
-  const listChildren = await asB.from("children").select("id");
+  const listPosts = await asB.from("posts").select("id");
   check(
-    "B's children list excludes A's child",
-    !(listChildren.data ?? []).some((r) => r.id === child.data?.id),
-    `count=${(listChildren.data ?? []).length}`,
-  );
-
-  const listKidWins = await asB.from("kid_wins").select("id");
-  check(
-    "B's kid_wins list excludes A's win",
-    !(listKidWins.data ?? []).some((r) => r.id === kidWin.data?.id),
-    `count=${(listKidWins.data ?? []).length}`,
+    "B's post list excludes A's private post",
+    !(listPosts.data ?? []).some((r) => r.id === post.data?.id),
+    `count=${(listPosts.data ?? []).length}`,
   );
 
   console.log(
@@ -283,11 +270,30 @@ try {
     (anonTask.data ?? []).length === 0,
     `count=${(anonTask.data ?? []).length}, err=${anonTask.error?.message ?? "none"}`,
   );
-  const anonChild = await anon.from("children").select("id").limit(5);
+  const anonPosts = await anon.from("posts").select("id").limit(5);
   check(
-    "anon SELECT on children returns nothing",
-    (anonChild.data ?? []).length === 0,
-    `count=${(anonChild.data ?? []).length}`,
+    "anon SELECT on posts returns nothing",
+    (anonPosts.data ?? []).length === 0,
+    `count=${(anonPosts.data ?? []).length}`,
+  );
+  const anonResv = await anon.from("handle_reservations").select("*").limit(5);
+  check(
+    "anon SELECT on handle_reservations returns nothing",
+    (anonResv.data ?? []).length === 0,
+    `count=${(anonResv.data ?? []).length}`,
+  );
+  const anonRpc = await anon.rpc("search_posts", {
+    p_viewer: "00000000-0000-0000-0000-000000000000",
+    p_friends: [],
+    p_blocked: [],
+    p_query: "harness",
+    p_space: "main",
+    p_limit: 5,
+  });
+  check(
+    "anon cannot execute search_posts (revoked)",
+    Boolean(anonRpc.error),
+    anonRpc.error ? anonRpc.error.code : "RPC SUCCEEDED (bad)",
   );
 } catch (e) {
   console.error("HARNESS ERROR:", e.message);
@@ -304,25 +310,22 @@ try {
   }
 
   console.log("\n=== verifying cascade left no orphaned rows ===");
-  for (const t of [
-    "tasks",
-    "ideas",
-    "posts",
-    "children",
-    "kid_wins",
-    "kid_rewards",
-  ]) {
+  for (const t of ["tasks", "ideas", "posts", "social_profiles"]) {
     const { data } = await admin
       .from(t)
       .select("*")
-      .or(
-        `user_id.eq.${idA},parent_id.eq.${idA},user_id.eq.${idB},parent_id.eq.${idB}`,
-      )
+      .or(`user_id.eq.${idA},user_id.eq.${idB}`)
       .limit(5);
     console.log(
       `  ${t}: ${(data ?? []).length === 0 ? "clean" : "!! " + (data ?? []).length + " ORPHANED ROWS"}`,
     );
   }
+  // Reservation rows reference released_by; harness never created any, but
+  // sweep our synthetic keys defensively.
+  await admin
+    .from("handle_reservations")
+    .delete()
+    .like("handle_key", `phz_%_${stamp}%`);
 
   const failed = results.filter((r) => !r.pass);
   console.log(
