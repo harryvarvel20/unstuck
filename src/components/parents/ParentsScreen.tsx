@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AGE_BANDS, bandLabel, type AgeBand, type Child } from "@/lib/parents";
+import {
+  loadChildren,
+  addChildLocal,
+  removeChildLocal,
+} from "@/lib/parentsLocal";
+import { childSafetyConcern, CHILD_SAFETY_SIGNPOST } from "@/lib/safety";
 import { capture } from "@/lib/analytics";
 import { useEscape } from "@/lib/hooks";
 import { ParentsHub } from "./ParentsHub";
@@ -18,22 +24,32 @@ const ACTIVE_KEY = "adhv-active-child";
 export function ParentsScreen({
   isPro,
   initialEnabled,
-  initialChildren,
 }: {
   isPro: boolean;
   initialEnabled: boolean;
-  initialChildren: Child[];
 }) {
   const [enabled, setEnabled] = useState(initialEnabled);
-  const [children, setChildren] = useState<Child[]>(initialChildren);
-  const [activeId, setActiveId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return initialChildren[0]?.id ?? null;
-    const stored = window.localStorage.getItem(ACTIVE_KEY);
-    if (stored && initialChildren.some((c) => c.id === stored)) return stored;
-    return initialChildren[0]?.id ?? null;
-  });
+  // Children live ONLY on this device (localStorage) — never on our servers.
+  const [children, setChildren] = useState<Child[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const list = loadChildren();
+    setChildren(list);
+    let stored: string | null = null;
+    try {
+      stored = window.localStorage.getItem(ACTIVE_KEY);
+    } catch {
+      /* noop */
+    }
+    setActiveId(
+      stored && list.some((c) => c.id === stored)
+        ? stored
+        : (list[0]?.id ?? null),
+    );
+  }, []);
 
   function selectChild(id: string) {
     setActiveId(id);
@@ -70,17 +86,13 @@ export function ParentsScreen({
     setAdding(false);
   }
 
-  async function removeChild(id: string) {
+  function removeChild(id: string) {
     setChildren((prev) => prev.filter((c) => c.id !== id));
     if (activeId === id) {
       const next = children.find((c) => c.id !== id) ?? null;
       setActiveId(next?.id ?? null);
     }
-    await fetch("/api/parents/children", {
-      method: "DELETE",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
+    removeChildLocal(id); // device-only; also clears their reward chart + wins
   }
 
   // ---- Not enabled: the calm opt-in ---------------------------------
@@ -126,7 +138,7 @@ export function ParentsScreen({
           )}
           <p className="mt-3 text-xs text-muted/80">
             You can turn this off any time. Your child&apos;s details stay on
-            your account only, and delete in one tap.
+            this device only — never on our servers — and delete in one tap.
           </p>
         </div>
       </div>
@@ -268,37 +280,26 @@ function AddChildSheet({
     if (allowCancel) onClose();
   });
 
-  async function save() {
+  function save() {
     if (!band || busy) return;
     setBusy(true);
     setNotice(null);
-    try {
-      const res = await fetch("/api/parents/children", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim() || undefined,
-          ageBand: band,
-          hardest: hardest.trim() || undefined,
-        }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (body.childSafety) {
-        capture("child_safety_routed", { surface: "add_child" });
-        setNotice(body.message as string);
-        return;
-      }
-      if (res.ok && body.child) {
-        capture("child_added", { ageBand: band });
-        onAdded(body.child as Child);
-      } else if (res.status === 402) {
-        setNotice("Parents Mode is part of Pro.");
-      } else {
-        setNotice("Couldn't save that just now — try again in a moment.");
-      }
-    } finally {
+    const h = hardest.trim();
+    // Safeguarding runs on-device, before saving — the note never leaves here.
+    if (h && childSafetyConcern(h)) {
+      capture("child_safety_routed", { surface: "add_child" });
+      setNotice(CHILD_SAFETY_SIGNPOST);
       setBusy(false);
+      return;
     }
+    const child = addChildLocal({
+      name: name.trim() || undefined,
+      ageBand: band,
+      hardest: h || undefined,
+    });
+    capture("child_added", { ageBand: band });
+    onAdded(child);
+    setBusy(false);
   }
 
   return (
@@ -329,14 +330,18 @@ function AddChildSheet({
           </p>
 
           <label className="mt-6 block text-sm font-medium text-muted">
-            First name <span className="font-normal">(optional)</span>
+            A name or nickname <span className="font-normal">(optional)</span>
           </label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value.slice(0, 40))}
-            placeholder="e.g. Sam"
+            placeholder="a nickname — or leave blank"
             className="mt-1.5 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-text placeholder:text-muted/60 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
+          <p className="mt-1.5 text-xs text-muted/80">
+            No need for their real name — a nickname or nothing is fine. It
+            stays on this device only.
+          </p>
 
           <label className="mt-5 block text-sm font-medium text-muted">
             Age band <span className="text-accent">*</span>
@@ -389,7 +394,8 @@ function AddChildSheet({
             {busy ? "Saving…" : "Add child"}
           </button>
           <p className="mt-3 text-center text-xs text-muted/80">
-            Stored on your account only. No child login, ever. Delete any time.
+            Kept on this device only — never sent to our servers. No child
+            login, ever. Delete any time.
           </p>
         </div>
       </div>

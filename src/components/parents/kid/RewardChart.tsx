@@ -6,6 +6,7 @@ import { haptic } from "@/lib/design";
 import { useEscape } from "@/lib/hooks";
 import { capture } from "@/lib/analytics";
 import { bandConfig, type Child } from "@/lib/parents";
+import { loadReward, saveReward, earnToken } from "@/lib/parentsLocal";
 
 /**
  * Reward chart / token economy (W4). Parent sets up to 3 target behaviours +
@@ -29,30 +30,21 @@ export function RewardChart({
   useEscape(onClose);
 
   useEffect(() => {
-    void (async () => {
-      const res = await fetch(`/api/parents/rewards?childId=${child.id}`);
-      if (res.ok) {
-        const b = await res.json();
-        setBehaviours(b.behaviours ?? []);
-        setRewards(b.rewards ?? []);
-        setTokens(b.tokens ?? 0);
-        if ((b.behaviours ?? []).length === 0) setEditing(true);
-      }
-      setLoading(false);
-    })();
+    // Device-only: the reward chart never leaves this browser.
+    const r = loadReward(child.id);
+    setBehaviours(r.behaviours);
+    setRewards(r.rewards);
+    setTokens(r.tokens);
+    if (r.behaviours.length === 0) setEditing(true);
+    setLoading(false);
   }, [child.id]);
 
-  async function earn(e: React.MouseEvent) {
+  function earn(e: React.MouseEvent) {
     haptic(12);
     const r = (e.target as HTMLElement).getBoundingClientRect();
     burstConfetti(r.left + r.width / 2, r.top + r.height / 2, 16);
-    setTokens((t) => t + 1);
+    setTokens(earnToken(child.id));
     capture("reward_earned", { ageBand: child.ageBand });
-    await fetch("/api/parents/rewards", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ childId: child.id }),
-    });
   }
 
   const currencyEmoji =
@@ -173,7 +165,7 @@ function RewardSetup({
   const [r, setR] = useState<string>(initialRewards.join("\n"));
   const [busy, setBusy] = useState(false);
 
-  async function save() {
+  function save() {
     setBusy(true);
     const behaviours = b
       .split("\n")
@@ -185,13 +177,9 @@ function RewardSetup({
       .map((x) => x.trim())
       .filter(Boolean)
       .slice(0, 8);
-    const res = await fetch("/api/parents/rewards", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ childId, behaviours, rewards }),
-    });
+    saveReward(childId, { behaviours, rewards });
     setBusy(false);
-    if (res.ok) onSaved(behaviours, rewards);
+    onSaved(behaviours, rewards);
   }
 
   return (

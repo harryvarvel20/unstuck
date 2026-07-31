@@ -4,6 +4,26 @@ Behavioural changes and refactors, newest first. Purely internal/security
 fixes with no user-visible behaviour change are not listed here — see
 `reports/SECURITY-REPORT.md` and git history for those.
 
+## Parents Mode — zero children's data on the server (privacy change)
+
+**Before:** Parents Mode stored a `children` row (optional name, age band, "what's
+hardest") plus per-child `kid_rewards` and `kid_wins` on the server.
+**Now:** ADHV holds **no data about a child** at all. The child list (an optional
+nickname + age band), the reward chart, and the "wins about my kid" log live
+**only on the parent's device** (localStorage, `src/lib/parentsLocal.ts`). The
+server only ever knows the *parent* toggled Parents Mode on. The `/api/parents/
+children`, `/api/parents/rewards`, and `/api/parents/wins` routes are removed,
+and migration `0023` **drops** the `children`, `kid_rewards`, and `kid_wins`
+tables so there is no capability to store child data.
+**Why:** eliminate children's-personal-data risk entirely (data minimisation —
+the strongest posture under UK GDPR / the Children's Code) while keeping Parents
+Mode fully functional. The AI coaching flows were already stateless (age band +
+situation are throwaway request parameters), so they are unchanged; safeguarding
+now runs on-device for the local free-text fields.
+**User impact:** child setup no longer syncs across devices (fitting for a
+shared-screen tool used on one device), and existing server-side child rows are
+deleted by the migration. The add-child screen steers to a nickname or nothing.
+
 ## Phase Y — Activity Center, navigation & Parents fixes
 
 ### Y1 — user-chosen usernames on the Activity Center

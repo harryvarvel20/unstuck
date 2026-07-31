@@ -70,6 +70,20 @@ export default function PrivacyPage() {
           </ul>
         </Section>
 
+        <Section title="Parents Mode & children">
+          <p>
+            Parents Mode is built so we hold{" "}
+            <strong className="text-text">no data about your child</strong>.
+            Everything you set up — the child (an optional nickname and an age
+            band), the reward chart, and your private &ldquo;wins about my
+            kid&rdquo; notes — stays{" "}
+            <strong className="text-text">only on your device</strong> and is
+            never sent to or stored on our servers. We never profile, track, or
+            advertise to children. It deletes in one tap, and clearing the app
+            on that device removes it entirely.
+          </p>
+        </Section>
+
         <Section title="Where it lives">
           <p>
             Your data is stored with Supabase (Postgres) and processed on

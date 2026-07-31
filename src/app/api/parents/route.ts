@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import type { Child } from "@/lib/parents";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,25 +12,11 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-interface ChildRow {
-  id: string;
-  name: string | null;
-  age_band: Child["ageBand"];
-  hardest: string | null;
-  created_at: string;
-}
-
-function shape(rows: ChildRow[] | null): Child[] {
-  return (rows ?? []).map((r) => ({
-    id: r.id,
-    name: r.name,
-    ageBand: r.age_band,
-    hardest: r.hardest,
-    createdAt: r.created_at,
-  }));
-}
-
-/** GET /api/parents — Parents-Mode status, plan, and the parent's children. */
+/**
+ * GET /api/parents — Parents-Mode status + plan only. Child data (the child
+ * list, reward charts, wins) lives on the parent's device and is never stored
+ * on or returned by the server.
+ */
 export async function GET(): Promise<Response> {
   const supabase = await createSupabaseServer();
   if (!supabase) return json({ error: "unavailable" }, 503);
@@ -46,15 +31,9 @@ export async function GET(): Promise<Response> {
     .eq("id", user.id)
     .maybeSingle();
 
-  const { data: children } = await supabase
-    .from("children")
-    .select("id, name, age_band, hardest, created_at")
-    .order("created_at", { ascending: true });
-
   return json({
     enabled: Boolean(profile?.parents_mode),
     plan: profile?.plan === "pro" ? "pro" : "free",
-    children: shape(children as ChildRow[] | null),
   });
 }
 

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { PRAISE_PHRASES } from "@/lib/parentsContent";
 import { capture } from "@/lib/analytics";
 import type { Child } from "@/lib/parents";
+import { loadWins, addWinLocal, removeWinLocal } from "@/lib/parentsLocal";
+import { childSafetyConcern, CHILD_SAFETY_SIGNPOST } from "@/lib/safety";
 
 /**
  * Positivity engine (W6) — a counter to the ~20,000 extra corrections an ADHD
@@ -23,43 +25,29 @@ export function PositivityView({ child }: { child: Child }) {
   const [phrase, setPhrase] = useState(0);
 
   useEffect(() => {
-    void (async () => {
-      const res = await fetch("/api/parents/wins");
-      if (res.ok) {
-        const b = await res.json();
-        setWins((b.wins ?? []) as Win[]);
-      }
-    })();
+    // Device-only: the wins log never leaves this browser.
+    setWins(loadWins());
   }, []);
 
-  async function logWin() {
-    if (!text.trim()) return;
+  function logWin() {
+    const t = text.trim();
+    if (!t) return;
     setNotice(null);
-    const res = await fetch("/api/parents/wins", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ childId: child.id, text: text.trim() }),
-    });
-    const body = await res.json().catch(() => ({}));
-    if (body.childSafety) {
+    // Safeguarding runs on-device, before saving — the text never leaves here.
+    if (childSafetyConcern(t)) {
       capture("child_safety_routed", { surface: "wins" });
-      setNotice(body.message as string);
+      setNotice(CHILD_SAFETY_SIGNPOST);
       return;
     }
-    if (res.ok && body.win) {
-      setWins((prev) => [body.win as Win, ...prev]);
-      setText("");
-      capture("praise_logged");
-    }
+    const win = addWinLocal(child.id, t);
+    setWins((prev) => [win, ...prev]);
+    setText("");
+    capture("praise_logged");
   }
 
-  async function removeWin(id: string) {
+  function removeWin(id: string) {
     setWins((prev) => prev.filter((w) => w.id !== id));
-    await fetch("/api/parents/wins", {
-      method: "DELETE",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
+    removeWinLocal(id);
   }
 
   return (
