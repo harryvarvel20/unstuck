@@ -4,6 +4,23 @@ Behavioural changes and refactors, newest first. Purely internal/security
 fixes with no user-visible behaviour change are not listed here — see
 `reports/SECURITY-REPORT.md` and git history for those.
 
+## Phase Z1 — verification pass (branch `phase-z-final`)
+
+- **Safety fix (Z1-D4):** `/api/social/assist` now runs the deterministic
+  crisis gate before ANY AI call on both assist kinds (tone-guard text and
+  playbook title/steps). Previously crisis text in those two fields could reach
+  the model. User-visible only in that a crisis draft now gets the signpost one
+  step earlier; no other behaviour change.
+- **Hardening (Z1-D3):** AI-generated step titles/tips now pass the same
+  `sanitizeText` stripping as messages (control chars / angle brackets).
+- **Tooling (Z1-D1/D2):** DB audit + RLS harness rewritten for the
+  post-0023 schema; the audit now *asserts* the child tables are gone
+  (zero-child-data guard) and the harness proves handle uniqueness,
+  `handle_reservations` lockdown, and `search_posts()` privilege revocation.
+- **Tests:** suite grown 68 → 205 (parser fallbacks, 87-assertion crisis-rule
+  sweep, mocked route suites for navigate/checkout/posts/assist). Vitest now
+  resolves the `@/` alias so route handlers are testable.
+
 ## Parents Mode — zero children's data on the server (privacy change)
 
 **Before:** Parents Mode stored a `children` row (optional name, age band, "what's
