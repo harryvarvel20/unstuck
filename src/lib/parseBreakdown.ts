@@ -116,7 +116,10 @@ function coerceStep(raw: string): BreakdownStep | null {
   if (typeof parsed !== "object" || parsed === null) return null;
 
   const obj = parsed as Record<string, unknown>;
-  const title = typeof obj.title === "string" ? obj.title.trim() : "";
+  // sanitizeText here too — step titles/tips are model output exactly like
+  // messages are, and must get the same control-char/markup stripping.
+  const title =
+    typeof obj.title === "string" ? sanitizeText(obj.title.trim()) : "";
   if (!title) return null;
 
   const minutesRaw = obj.minutes;
@@ -129,8 +132,11 @@ function coerceStep(raw: string): BreakdownStep | null {
   if (!Number.isFinite(minutes) || minutes <= 0) minutes = 2;
   minutes = Math.max(1, Math.min(20, Math.round(minutes)));
 
-  const tip =
-    typeof obj.tip === "string" && obj.tip.trim() ? obj.tip.trim() : undefined;
+  const tipRaw =
+    typeof obj.tip === "string" && obj.tip.trim()
+      ? sanitizeText(obj.tip.trim())
+      : "";
+  const tip = tipRaw || undefined;
 
   return { title, minutes, tip };
 }
@@ -186,7 +192,8 @@ export function parseItemsArray(buffer: string, key: string): ParsedItem[] {
       }
       if (typeof parsed !== "object" || parsed === null) return null;
       const obj = parsed as Record<string, unknown>;
-      const title = typeof obj.title === "string" ? obj.title.trim() : "";
+      const title =
+        typeof obj.title === "string" ? sanitizeText(obj.title.trim()) : "";
       if (!title) return null;
       let minutes =
         typeof obj.minutes === "number"

@@ -20,6 +20,7 @@ import {
   type RequestIdentity,
 } from "@/lib/quota";
 import { sanitizeText } from "@/lib/parseBreakdown";
+import { containsCrisisLanguage, CRISIS_SIGNPOST } from "@/lib/safety";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -80,6 +81,16 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     const tone = toneSchema.safeParse(body);
     if (tone.success) {
+      // Deterministic crisis gate BEFORE any AI call (Z1-D4). The comment
+      // endpoint will show the signpost; the model never sees the text.
+      if (containsCrisisLanguage(tone.data.text)) {
+        return json({
+          kind: true,
+          nudge: "",
+          crisis: true,
+          message: CRISIS_SIGNPOST,
+        });
+      }
       try {
         const out = (await generateJson(
           buildToneGuardPrompt(),
@@ -96,6 +107,11 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     const draft = draftSchema.safeParse(body);
     if (draft.success) {
+      // Same deterministic gate on the playbook free-text (title + steps).
+      const combined = `${draft.data.title} ${draft.data.steps.join(" ")}`;
+      if (containsCrisisLanguage(combined)) {
+        return json({ crisis: true, message: CRISIS_SIGNPOST });
+      }
       try {
         const user = `Task: ${sanitizeText(draft.data.title)}\nSteps used:\n${draft.data.steps.map((s) => `- ${sanitizeText(s)}`).join("\n")}`;
         const out = (await generateJson(buildPlaybookDraftPrompt(), user)) as {
