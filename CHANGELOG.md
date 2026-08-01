@@ -4,6 +4,30 @@ Behavioural changes and refactors, newest first. Purely internal/security
 fixes with no user-visible behaviour change are not listed here — see
 `reports/SECURITY-REPORT.md` and git history for those.
 
+## Phase Z3–Z7 — verification, hardening & compliance (branch `phase-z-final`)
+
+- **Parents (Z3-D1):** the positivity engine (labelled-praise coach, Special
+  Time nudge, private wins log) was built but unreachable — now its own hub
+  area, "Notice the good".
+- **Children's Code (Z3-D2, behaviour change):** removed every interaction
+  analytics event from kid-facing shared-screen tools — notably
+  `emotion_checked`, which telemetered the child's emotional state. Only the
+  content-free `child_safety_routed` safety event remains on those surfaces.
+- **Parents data lifecycle (Z3-D3/D4):** device-only child data now clears on
+  sign-out and on account deletion, plus a one-tap "Erase all Parents data
+  from this device".
+- **Accessibility (Z4):** three header icon targets 40px → 44px.
+- **Sign-in (Z6, user-visible):** the form now states you're 18-or-over and
+  links Terms + Privacy.
+- **Security (Z5):** `npm audit fix` applied; secrets scan of tree + full git
+  history (pushed history clean — no rotation needed).
+- **Housekeeping (Z7):** expired `handle_reservations` are now purged during a
+  rename, so the table can't grow unboundedly.
+- **Testing:** two durable live harnesses added — full Activity Center
+  two-account battery (65 checks) and playbook-copy (2). Reports:
+  ACTIVITY-REPORT, PARENTS-REPORT, ADHD-IMPROVEMENTS, SECURITY-REPORT (Z5
+  rewrite), COMPLIANCE-REPORT, PHASE-Z-SUMMARY (GO/NO-GO).
+
 ## Phase Z1 — verification pass (branch `phase-z-final`)
 
 - **Safety fix (Z1-D4):** `/api/social/assist` now runs the deterministic

@@ -147,6 +147,14 @@ export async function POST(req: NextRequest): Promise<Response> {
       return json({ error: "failed" }, 500);
     }
 
+    // Housekeeping (Z7): drop reservations whose cool-down has elapsed, so the
+    // table can't grow unboundedly and expired names become claimable again.
+    // Opportunistic and best-effort — never blocks the user's rename.
+    await db
+      .from("handle_reservations")
+      .delete()
+      .lt("reserved_until", new Date().toISOString());
+
     // Reserve the freed handle so it can't be grabbed for impersonation, and
     // clear any reservation I held on the name I've just reclaimed.
     if (oldKey && oldKey !== v.key) {

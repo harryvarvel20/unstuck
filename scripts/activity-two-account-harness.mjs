@@ -780,7 +780,12 @@ try {
       );
     }
   }
+  // Reservations the harness creates are the accounts' AUTO-generated
+  // placeholder handles (released when each chose a real one), so matching
+  // `phz2_%` isn't enough. Deleting the accounts nulls released_by — exactly
+  // the orphan signature to sweep.
   await admin.from("handle_reservations").delete().like("handle_key", `phz2_%`);
+  await admin.from("handle_reservations").delete().is("released_by", null);
 
   if (server) server.kill();
 
