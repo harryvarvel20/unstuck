@@ -86,9 +86,18 @@ const config: Config = {
       },
       animation: {
         "tick-pop": "tick-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1)",
-        "card-in": "card-in 0.35s ease-out both",
+        // NOTE: entrance animations that animate `transform` MUST use
+        // `backwards`, never `both`. `both` retains the final keyframe, and a
+        // retained transform — even the identity `translateY(0)` — makes the
+        // element a CONTAINING BLOCK for `position: fixed` descendants. That
+        // traps every modal rendered inside an animated wrapper into that
+        // wrapper's box instead of the viewport (it renders as a tiny
+        // scrollable sliver). `backwards` still applies the first keyframe
+        // before the animation starts, so there is no flash-in, but nothing
+        // is retained afterwards. `fade-in` is opacity-only, so it is safe.
+        "card-in": "card-in 0.35s ease-out backwards",
         "fade-in": "fade-in 0.4s ease-out both",
-        "page-in": "page-in 0.26s cubic-bezier(0.16, 1, 0.3, 1) both",
+        "page-in": "page-in 0.26s cubic-bezier(0.16, 1, 0.3, 1) backwards",
         breath: "breath 7s ease-in-out infinite",
         shimmer: "shimmer 1.4s linear infinite",
         "door-in": "door-in 0.5s ease-out both",
