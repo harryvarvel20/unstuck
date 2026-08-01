@@ -124,6 +124,19 @@ export default function LoginPage() {
               >
                 {state === "sending" ? "Sending…" : "Send magic link"}
               </button>
+
+              <p className="mt-3 text-center text-xs text-muted/80">
+                By continuing you confirm you&apos;re 18 or over and agree to
+                our{" "}
+                <Link href="/terms" className="underline hover:text-text">
+                  Terms
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="underline hover:text-text">
+                  Privacy Policy
+                </Link>
+                .
+              </p>
             </form>
 
             <p className="mt-6 text-sm text-muted">
