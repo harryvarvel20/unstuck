@@ -58,7 +58,7 @@ export function SiteHeader({ user }: SiteHeaderProps) {
             href="/toolkit"
             aria-label="Toolkit"
             title="Toolkit — everything, one tap away"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-muted transition-colors hover:border-accent/50 hover:text-accent"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface text-muted transition-colors hover:border-accent/50 hover:text-accent"
           >
             <svg
               width="17"
@@ -82,7 +82,7 @@ export function SiteHeader({ user }: SiteHeaderProps) {
           href="/regulate?tool=cooldown"
           aria-label="Cool-down — a 90-second reset"
           title="Feeling a spike? A 90-second cool-down"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-muted transition-colors hover:border-accent/50 hover:text-accent"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface text-muted transition-colors hover:border-accent/50 hover:text-accent"
         >
           <svg
             width="17"
@@ -109,7 +109,7 @@ export function SiteHeader({ user }: SiteHeaderProps) {
               aria-haspopup="menu"
               aria-expanded={open}
               aria-label="Account menu"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-ink transition-transform active:scale-95"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-ink transition-transform active:scale-95"
             >
               {initial}
             </button>
