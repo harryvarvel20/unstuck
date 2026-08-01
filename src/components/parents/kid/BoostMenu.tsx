@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useEscape } from "@/lib/hooks";
 import { haptic } from "@/lib/design";
-import { capture } from "@/lib/analytics";
 import { BOOST_DEFAULTS } from "@/lib/parentsContent";
 
 /** Boost menu (W4) — a dopamenu for kids: quick sensory/movement lifts for the
@@ -45,7 +44,6 @@ export function BoostMenu({ onClose }: { onClose: () => void }) {
                 onClick={() => {
                   setActive(b);
                   haptic(10);
-                  capture("boost_used");
                 }}
                 className="glass rounded-3xl p-6 text-center shadow-soft transition-transform active:scale-[0.97]"
               >

@@ -9,6 +9,7 @@ import { CoachView } from "./CoachView";
 import { WithChildView } from "./WithChildView";
 import { JustForYouView } from "./JustForYouView";
 import { SchoolView } from "./SchoolView";
+import { PositivityView } from "./PositivityView";
 import { MeltdownMode } from "./MeltdownMode";
 import { CpsFlow } from "./CpsFlow";
 
@@ -19,7 +20,7 @@ import { CpsFlow } from "./CpsFlow";
  * search bar, never a feature buffet.
  */
 
-type Area = "hub" | "coach" | "child" | "you" | "school";
+type Area = "hub" | "coach" | "child" | "you" | "school" | "praise";
 
 export function ParentsHub({ child }: { child: Child }) {
   const [area, setArea] = useState<Area>("hub");
@@ -70,6 +71,12 @@ export function ParentsHub({ child }: { child: Child }) {
       body: "Shared-screen kid tools",
     },
     {
+      key: "praise",
+      emoji: "💛",
+      title: "Notice the good",
+      body: "Praise coach + wins log",
+    },
+    {
       key: "you",
       emoji: "🫖",
       title: "Just for you",
@@ -91,6 +98,7 @@ export function ParentsHub({ child }: { child: Child }) {
         <div className="mt-3">
           {area === "coach" && <CoachView child={child} />}
           {area === "child" && <WithChildView child={child} />}
+          {area === "praise" && <PositivityView child={child} />}
           {area === "you" && <JustForYouView />}
           {area === "school" && <SchoolView />}
         </div>

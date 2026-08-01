@@ -150,3 +150,24 @@ export function removeWinLocal(id: string): void {
     loadWins().filter((w) => w.id !== id),
   );
 }
+
+/* ---- one-tap erase -------------------------------------------------------
+   Removes EVERYTHING Parents-related from this device: the child list, every
+   reward chart, the wins log, and the active-child pointer. Called from the
+   Parents screen (erase button), on sign-out, and on account deletion. */
+
+export function clearAllParentsLocal(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const doomed: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (k && (k.startsWith("adhv-parents-") || k === "adhv-active-child")) {
+        doomed.push(k);
+      }
+    }
+    doomed.forEach((k) => window.localStorage.removeItem(k));
+  } catch {
+    /* storage unavailable — nothing to clear */
+  }
+}

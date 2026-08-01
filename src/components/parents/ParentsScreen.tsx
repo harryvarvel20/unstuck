@@ -7,6 +7,7 @@ import {
   loadChildren,
   addChildLocal,
   removeChildLocal,
+  clearAllParentsLocal,
 } from "@/lib/parentsLocal";
 import { childSafetyConcern, CHILD_SAFETY_SIGNPOST } from "@/lib/safety";
 import { capture } from "@/lib/analytics";
@@ -239,23 +240,36 @@ export function ParentsScreen({
         />
       )}
 
-      {/* Turn-off */}
+      {/* Turn-off + one-tap device erase */}
       {children.length > 0 && (
-        <button
-          type="button"
-          onClick={async () => {
-            await fetch("/api/parents", {
-              method: "PATCH",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ enabled: false }),
-            });
-            setEnabled(false);
-            window.dispatchEvent(new Event("adhv-parents-changed"));
-          }}
-          className="mt-6 text-xs text-muted/70 underline-offset-4 transition-colors hover:text-accent hover:underline"
-        >
-          Turn off Parents Mode
-        </button>
+        <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2">
+          <button
+            type="button"
+            onClick={async () => {
+              await fetch("/api/parents", {
+                method: "PATCH",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ enabled: false }),
+              });
+              setEnabled(false);
+              window.dispatchEvent(new Event("adhv-parents-changed"));
+            }}
+            className="text-xs text-muted/70 underline-offset-4 transition-colors hover:text-accent hover:underline"
+          >
+            Turn off Parents Mode
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              clearAllParentsLocal();
+              setChildren([]);
+              setActiveId(null);
+            }}
+            className="text-xs text-muted/70 underline-offset-4 transition-colors hover:text-accent hover:underline"
+          >
+            Erase all Parents data from this device
+          </button>
+        </div>
       )}
     </div>
   );

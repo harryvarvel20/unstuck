@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useEscape } from "@/lib/hooks";
-import { capture } from "@/lib/analytics";
 import { EMOTION_LEVELS } from "@/lib/parentsContent";
 import type { AgeBand } from "@/lib/parents";
 
@@ -54,7 +53,6 @@ export function EmotionCheck({
               type="button"
               onClick={() => {
                 setPicked(l.id);
-                capture("emotion_checked", { ageBand, level: l.id });
               }}
               aria-pressed={picked === l.id}
               className="flex items-center gap-4 rounded-3xl border-2 p-4 text-left transition-transform active:scale-[0.98]"

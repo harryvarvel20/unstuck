@@ -63,7 +63,6 @@ export function HomeworkHelper({
         setSteps(r.steps);
         setCelebrate(r.celebrate ?? "Done! That was hard and you did it.");
         setDone(new Array(r.steps.length).fill(false));
-        capture("homework_helper_used", { ageBand });
         setStage("steps");
       } else {
         setError(true);

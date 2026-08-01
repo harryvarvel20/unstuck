@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { clearAllParentsLocal } from "@/lib/parentsLocal";
 
 /** Delete my account & data — real, immediate, with one honest confirm. */
 export function DeleteAccount() {
@@ -14,6 +15,8 @@ export function DeleteAccount() {
     try {
       const res = await fetch("/api/account/delete", { method: "POST" });
       if (res.ok) {
+        // Server rows are gone; clear the device-only Parents data too.
+        clearAllParentsLocal();
         window.location.href = "/";
         return;
       }

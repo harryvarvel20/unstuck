@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { burstConfetti } from "@/lib/confetti";
 import { haptic } from "@/lib/design";
 import { useEscape } from "@/lib/hooks";
-import { capture } from "@/lib/analytics";
 import { bandConfig, type Child } from "@/lib/parents";
 import { loadReward, saveReward, earnToken } from "@/lib/parentsLocal";
 
@@ -44,7 +43,6 @@ export function RewardChart({
     const r = (e.target as HTMLElement).getBoundingClientRect();
     burstConfetti(r.left + r.width / 2, r.top + r.height / 2, 16);
     setTokens(earnToken(child.id));
-    capture("reward_earned", { ageBand: child.ageBand });
   }
 
   const currencyEmoji =

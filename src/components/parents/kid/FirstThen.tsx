@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useEscape } from "@/lib/hooks";
-import { capture } from "@/lib/analytics";
 
 /** First–Then board (W4): "First [task], then [good thing]" — a big, calm
  *  visual that reframes a non-preferred task around what comes after. */
@@ -54,7 +53,6 @@ export function FirstThen({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={() => {
               setShowing(true);
-              capture("firstthen_used");
             }}
             disabled={!first.trim() || !then.trim()}
             className="grad-primary mt-6 w-full rounded-2xl px-5 py-3.5 font-semibold shadow-soft disabled:opacity-50"

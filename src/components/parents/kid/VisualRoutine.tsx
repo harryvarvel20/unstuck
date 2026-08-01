@@ -4,7 +4,6 @@ import { useState } from "react";
 import { burstConfetti } from "@/lib/confetti";
 import { haptic } from "@/lib/design";
 import { useEscape } from "@/lib/hooks";
-import { capture } from "@/lib/analytics";
 import type { AgeBand } from "@/lib/parents";
 
 /**
@@ -88,7 +87,6 @@ export function VisualRoutine({
         r ? r.top : window.innerHeight / 2,
         18,
       );
-      capture("kid_routine_run", { ageBand, preset: presetId });
     } else {
       setIdx(idx + 1);
     }

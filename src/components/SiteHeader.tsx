@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { SessionUser } from "@/lib/types";
+import { clearAllParentsLocal } from "@/lib/parentsLocal";
 import { ThemeToggle } from "./ThemeToggle";
 
 interface SiteHeaderProps {
@@ -157,7 +158,13 @@ export function SiteHeader({ user }: SiteHeaderProps) {
                   >
                     Account
                   </Link>
-                  <form action="/auth/signout" method="post">
+                  <form
+                    action="/auth/signout"
+                    method="post"
+                    // Device-only Parents data is tied to the signed-in person:
+                    // leaving the account clears it from this browser.
+                    onSubmit={() => clearAllParentsLocal()}
+                  >
                     <button
                       type="submit"
                       role="menuitem"
