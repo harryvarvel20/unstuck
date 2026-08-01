@@ -214,6 +214,12 @@ export default function LandingPage() {
           <Link href="/terms" className="hover:text-text">
             Terms
           </Link>
+          <Link href="/guidelines" className="hover:text-text">
+            Guidelines
+          </Link>
+          <Link href="/accessibility" className="hover:text-text">
+            Accessibility
+          </Link>
         </div>
         <p className="mt-4 text-center text-xs text-muted/80">
           ADHV is a self-management tool, not therapy or medical advice.
