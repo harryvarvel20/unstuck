@@ -73,9 +73,8 @@ _(For each new influencer later: same coupon, new promotion code.)_
 
 ### 2d. Live API keys
 
-**Developers → API keys** → copy the **publishable** (`pk_live_…`) and reveal
-
-- copy the **secret** (`sk_live_…`).
+**Developers → API keys** → copy the **publishable** key (`pk_live_…`), then
+reveal and copy the **secret** key (`sk_live_…`).
 
 ---
 
