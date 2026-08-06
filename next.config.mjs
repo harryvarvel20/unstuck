@@ -65,6 +65,18 @@ const nextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
+          // AA1: belt-and-braces — preview/development deployments must never
+          // be indexed, even if Deployment Protection is misconfigured or
+          // bypassed. VERCEL_ENV is "production" only on the production
+          // domain; it is absent locally, so local dev is also marked noindex.
+          ...(process.env.VERCEL_ENV === "production"
+            ? []
+            : [
+                {
+                  key: "X-Robots-Tag",
+                  value: "noindex, nofollow, noarchive",
+                },
+              ]),
         ],
       },
     ];

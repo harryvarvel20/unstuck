@@ -13,12 +13,18 @@ const OFFLINE_HTML = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ADHV — offline</title>
 <style>
+  /* "Old Money" palette — must match globals.css / the manifest, or the
+     offline screen looks like a different app (AA1-D3). */
   body{margin:0;min-height:100dvh;display:flex;align-items:center;justify-content:center;
-  background:#0E0E13;color:#F0EFF5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:#F5F0E6;color:#0F1F34;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   text-align:center;padding:24px}
   .card{max-width:380px}
   h1{font-size:22px;margin:12px 0 0}
-  p{color:#A2A2B6;margin-top:10px;line-height:1.5}
+  p{color:#5A6472;margin-top:10px;line-height:1.5}
+  @media (prefers-color-scheme: dark){
+    body{background:#0F1620;color:#F5F0E6}
+    p{color:#A9B2BF}
+  }
 </style></head><body><div class="card">
 <div style="font-size:38px">🌙</div>
 <h1>You're offline — and that's fine.</h1>
