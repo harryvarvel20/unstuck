@@ -459,31 +459,42 @@ cost liability.
 
 **Test suite: 236 passing (was 216).** Typecheck and Prettier clean.
 
-## 4. ⚠️ Decision needed: the function region
+## 4. AA3-D2 resolved: functions moved to London
 
-This is potentially the single largest latency win available, and I cannot
-settle it from here — the Supabase API sits behind Cloudflare, so DNS and
-latency probes do not reveal the origin region.
+**Supabase is in `eu-west-2` (London); Vercel functions were defaulting to
+`iad1` (Washington, D.C.).**
 
-**What I need from you:** Supabase → your project → **Settings → General** →
-read the **Region** field. Tell me what it says.
+Every authenticated request in this app begins with a Supabase auth check, so
+_every_ API call was making at least one transatlantic round trip — roughly
+150ms before any real work began — and routes issuing several sequential
+queries paid it repeatedly. This was the largest single latency defect found in
+Phase AA.
 
-Then:
+**Fix:** a minimal `vercel.json` pinning `"regions": ["lhr1"]` (London). This
+puts compute next to the database _and_ next to the UK userbase — there is no
+trade-off to weigh here, London wins on both axes.
 
-| Supabase region | Recommendation |
-| --- | --- |
-| London / `eu-west-2` | Set Vercel functions to **`lhr1`** — puts compute next to both the database and the users |
-| Frankfurt / Ireland | Set functions to **`fra1`** / **`dub1`** to match |
-| A US region | Harder call: `iad1` keeps functions next to the DB (better, since routes make several sequential queries) but adds a transatlantic hop for every UK user. Worth also asking whether the DB should move before launch, while there is little data to migrate |
+Set in code rather than the dashboard deliberately: it is version-controlled,
+reviewable in a diff, and cannot be changed silently by a dashboard click. The
+file contains **only** the `regions` key. It does not use `routes`, `headers`
+or `functions`, so it cannot conflict with the `headers()` block in
+`next.config.mjs` (see AA2 §2 for why `routes` in particular is off-limits).
 
-**Do not change this yet.** Region is set in Settings → Functions, applies on
-next deploy, and should be verified with a real timing comparison rather than
-assumed. I would also not do it in the same change as the Stripe live cutover.
+**UK GDPR note.** The Privacy Policy and `legal/ROPA.md` already disclose that
+some processors are US-based and that transfers rely on the IDTA/SCCs — both
+remain accurate, since Gemini and Stripe are US-based regardless. This change
+does not fix an inaccuracy; it reduces the amount of personal data leaving the
+UK, which is a genuine improvement to the transfer position but not a
+correction. **No legal document needs editing as a result of this change.**
 
-There is a second, non-obvious reason to resolve this before launch: **UK GDPR**.
-If functions run in `iad1`, personal data is processed in the United States,
-which affects the transfer position recorded in `legal/ROPA.md` and the Privacy
-Policy. Moving compute to `lhr1` removes that question entirely.
+**Verification required after deploy** — this must be measured, not assumed:
+
+1. Vercel → the deployment → **Functions** tab → region should read `lhr1`.
+2. Time an authenticated API call from a UK connection before and after. Expect
+   a clear drop on DB-heavy routes such as `/api/today`.
+3. Confirm no regression on `/api/webhooks/stripe` — Stripe calls in from its
+   own infrastructure and does not care about region, but it is the one
+   endpoint where a surprise would cost money.
 
 ## 5. Deliberately not changed
 
