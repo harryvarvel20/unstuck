@@ -532,3 +532,57 @@ npm run typecheck && npx vitest run    # expect 236 passed
 - **Behavioural check:** run a normal task breakdown on production. It must
   stream and complete exactly as before — the 60s cap and 45s abort are far
   above normal completion time, so nothing user-visible should change.
+
+## 8. Deployment record — AA1–AA3 shipped to production
+
+Merged `phase-aa-vercel-pro` → `main` (fast-forward, `dcec095`) and deployed
+10 Aug 2026.
+
+**Pre-merge verification on the preview deployment** — 83 functions listed, and
+every one showed:
+
+- region **`lhr1`**, not `iad1`
+- runtime **Node.js 24.x**, matching the `engines` pin
+- the capped AI routes at **≤60s**; uncapped routes still at the platform
+  default **≤300s**, which is what the dashboard default (§6.2) will bring down
+
+**Post-deploy verification on production:**
+
+| Check | Result |
+| --- | --- |
+| Public pages (8) | all 200 |
+| Gated pages (3) | 307 auth redirects |
+| `X-Vercel-Mitigated` | absent everywhere — no firewall false positives |
+| **`X-Robots-Tag`** | **absent in production** — the AA1 noindex correctly fires only on non-production, so the site stays indexable |
+| Security headers | CSP, HSTS, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy all present |
+| `POST /api/webhooks/stripe` unsigned | **400** — signature verification intact. The single most important regression check |
+| `/api/breakdown`, `/api/navigate` | 400 on empty body |
+| `/api/parents` signed out | 401 |
+| No 5xx on any probe | confirmed |
+
+**Latency:** `/activity` performs a Supabase auth check before redirecting, so
+it exercises the function→database path. It now returns in **89–110ms** from a
+UK connection. A transatlantic round trip is ~75–90ms each way, so an `iad1`
+function querying a London database could not produce that figure. **Caveat, so
+this is not overstated:** no before-measurement was captured on that route, so
+this is corroboration rather than a measured delta.
+
+### Not a defect: the Parents tab is absent on preview deployments
+
+Raised during preview review. **Working as designed, and unrelated to this
+branch** — the diff touches no component, page or navigation file.
+
+`GET /api/parents` returns **401** when signed out; `AppNav` bails on any
+non-OK response and leaves `parentsEnabled` false, so the tab does not render.
+A preview deployment is served from a different domain, so the production
+Supabase session cookie does not apply — you are signed out there. Toolkit and
+Activity are unconditional, which is why only Parents appeared to vanish.
+
+Two conditions must both hold for the tab to show: signed in **and**
+`profiles.parents_mode` true. Until Parents Mode is enabled it is reachable
+only via the header dropdown.
+
+**Open UX question (not an AA item):** a Pro user who has never enabled Parents
+Mode has no signpost to it in the tab bar. That is deliberate, but it is worth
+asking whether the pinnacle feature of the product should be that quiet. Logged
+for a product session, not changed inside an infrastructure merge.
