@@ -5,6 +5,7 @@ import { getRequestIdentity, checkBurst, BURST } from "@/lib/quota";
 import { MIN_SIGNALS, type FocusSignal } from "@/lib/focusProfile";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 function json(body: unknown, status: number): Response {

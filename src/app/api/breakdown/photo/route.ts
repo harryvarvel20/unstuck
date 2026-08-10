@@ -8,6 +8,7 @@ import { getServiceClient } from "@/lib/supabaseServer";
 import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 function json(body: unknown, status: number): Response {

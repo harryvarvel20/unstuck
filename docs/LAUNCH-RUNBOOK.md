@@ -27,8 +27,15 @@ registration yet, and I'll add it.
 ### 1c. Vercel → Pro — ~5 min, ~$20/mo
 
 Vercel → team **HarryVarvel** → Settings → Plans → upgrade. Required for
-commercial use, and it lifts the function timeout your streaming AI endpoints
-rely on under load.
+commercial use. It also unlocks WAF custom rules, multi-region functions, and
+raises included usage to 1 TB transfer / 10M edge requests.
+
+> Correction: an earlier draft of this runbook said Pro "lifts the function
+> timeout your streaming AI endpoints rely on". That was wrong. Under fluid
+> compute the **default** max duration is 300s on Hobby _and_ Pro; Pro raises
+> the configurable **ceiling** (300s → 800s), which this app does not need —
+> AA3 caps the AI routes at 60s deliberately. Pro is still required, for the
+> reasons above.
 
 ---
 

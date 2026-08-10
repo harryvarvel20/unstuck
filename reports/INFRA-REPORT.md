@@ -327,3 +327,197 @@ tell me the number**, and I will fold it into the AA8 unit-economics model.
 6. **Share preview:** paste an ADHV link into WhatsApp or Discord → the OG card
    must still render (proves the crawler bypass works).
 7. **PWA:** install from mobile and load offline → must still work.
+
+## 9. Addendum — what was actually deployed, and what went wrong
+
+### 9.1 The rule that is live
+
+One custom rule, **"Rate limit AI endpoints (LOG ONLY)"**:
+
+| Setting | Value |
+| --- | --- |
+| Conditions | Request Path **Contains** `/api/breakdown` **OR** `/api/navigate` **OR** `/api/pick` |
+| Rate limit | Fixed Window · 60s · 20 requests · keyed by **IP Address** |
+| Action | **Log** |
+| Persistent action | **none** |
+
+It blocks nothing. It exists to answer one question before we enforce anything:
+does any real IP ever exceed 20 requests/minute to these paths?
+
+### 9.2 Incident — the exploit-probe rule (A1)
+
+Group A was published as **Deny + persistent block (1 hour)**. Shortly after,
+every request I made to the site returned **403** with
+`X-Vercel-Mitigated: deny`. Deleting the rule did not restore access, because
+the persistent action had already blocked the offending IP for an hour
+independently of the rule's existence. It cleared on its own overnight.
+
+**Root cause:** I probed `/.env` to verify the rule worked. That request matched
+A1, which triggered the persistent action, which blocked **my IP for every path**
+— not just the probe paths.
+
+**Correction to the original incident report:** I described this as "the whole
+site is down". That was wrong and I should not have said it without checking.
+I had only tested from my own connection, which was the one blocked. There is
+no evidence any real visitor was affected.
+
+**What changed as a result:**
+
+- **No persistent actions.** They convert a path-scoped rule into an
+  identity-scoped block, and they outlive the rule that created them.
+- **Log genuinely means log.** §4 already said to start at Log; I overrode my
+  own advice on the grounds that A1 was "zero-risk". The rule was fine — the
+  persistent action was not, and I recommended it.
+- **Verify from a second vantage point** before declaring an outage.
+
+### 9.3 Two corrections to the §4 rule design
+
+1. **Operator.** The dashboard's **"Is any of"** does exact path matching and
+   rejected 6 of 7 values as invalid options. Use **Contains**. A useful
+   consequence: `Contains /api/breakdown` also covers `/api/breakdown/photo`,
+   so the photo endpoint is protected without a fourth condition.
+
+2. **`/api/pick` is not an AI endpoint.** §4 grouped it under "AI cost
+   protection". It is not — it calls `choosePick()` in `src/lib/pick.ts`, which
+   is pure local logic and costs nothing at Google. Rate-limiting it is still
+   reasonable abuse protection, but the **actual AI cost surface is 17 routes**
+   (see AA3 §2), of which the live rule covers two. Widening it is an AA8
+   decision once the log data and the pricing figure are in.
+
+**Still outstanding:** the rate-limit **pricing dialog figure**, needed for the
+AA8 unit-economics model.
+
+---
+
+# AA3 — Functions, runtime & execution limits
+
+Capabilities verified against live Vercel documentation, 10 Aug 2026.
+
+## 1. Verified limits (not assumptions)
+
+Fluid compute has been **enabled by default for new projects since 23 April
+2025**, so these are the numbers that apply:
+
+| | Default duration | Maximum | Extended (beta) |
+| --- | --- | --- | --- |
+| Hobby | 300s | 300s | — |
+| **Pro** | **300s** | **800s** | 1800s |
+| Enterprise | 300s | 800s | 1800s |
+
+**Correction to the launch runbook.** It claimed Pro "lifts the function timeout
+your streaming AI endpoints rely on". That was wrong: the *default* is 300s on
+Hobby too. Pro raises the configurable *ceiling*. The runbook has been fixed.
+
+Other verified facts:
+
+- **Default function region is `iad1` (Washington, D.C.) for all new projects.**
+- Pro allows functions in **up to 5 regions**; Hobby is single-region.
+- Precedence: **function code › `vercel.json` › dashboard › fluid defaults.**
+- Supported Node versions: **24.x (default)**, 22.x, 20.x.
+- Under fluid compute, billing is **active CPU** — it pauses while a function
+  waits on I/O. A function blocked on Gemini is therefore cheap in CPU terms,
+  but it still occupies provisioned memory on a running instance.
+
+## 2. Findings
+
+| ID | Severity | Finding | Action |
+| --- | --- | --- | --- |
+| AA3-D1 | **High (cost)** | **No `maxDuration` anywhere in the repo.** All 58 API routes plus every SSR page inherited the 300s default. 17 routes call Gemini with no ceiling of their own | **Fixed** — explicit caps added (§3) |
+| AA3-D2 | **High (latency)** | **No region configuration.** Functions run in Vercel's default `iad1` (Washington D.C.) while the userbase is UK and Supabase is elsewhere. Every DB query may be crossing the Atlantic twice | **Decision required — §4** |
+| AA3-D3 | **Medium (reliability)** | `streamGeminiJson` had **no timeout or abort signal**. A hung upstream call was bounded only by the platform's 300s | **Fixed** — 45s `AbortSignal.timeout` |
+| AA3-D4 | Medium (reproducibility) | **No `engines.node`.** Local Node is **26.3.1**; Vercel's default is **24.x**. Two majors of drift between dev and production, unpinned in either direction | **Fixed** — pinned to `24.x` |
+| AA3-D5 | Low | On upstream failure `streamGeminiJson` logs and closes a **200** stream, so the client receives an empty body with no error signal | **Documented, not changed** — see §5 |
+| AA3-D6 | Info (pass) | **Runtime consistency: every route explicitly declares `runtime = "nodejs"`.** No accidental Edge usage — correct, since the Stripe SDK and Supabase service-role client both require Node | No action |
+
+## 3. Fixes applied
+
+**Duration caps** (`export const maxDuration`, the App Router first-class form —
+it takes precedence over every other source):
+
+| Routes | Cap | Why |
+| --- | --- | --- |
+| 17 Gemini routes + `/api/account/delete` | **60s** | A streamed breakdown finishes in well under 10s; 60s is generous headroom and 5× tighter than the default. The account deletion cascade gets the same allowance |
+| `/api/webhooks/stripe` | **30s** | Signature verify + DB write. Ample, and Stripe gives up long before this |
+| `/api/og`, `/api/icon`, `/api/wins-card` | **30s** | Image generation |
+
+**Gemini abort** — `GEMINI_STREAM_TIMEOUT_MS = 45_000`, passed as
+`abortSignal: AbortSignal.timeout(...)`. Deliberately below the 60s route cap so
+a stall fails on our terms (logged, stream closed cleanly) rather than being
+killed mid-flight by the platform. Per the SDK, aborting is client-side only: it
+frees the function, it does not cancel Google's work, and tokens already
+produced are still billed.
+
+**Node pinned** to `24.x` in `package.json#engines`, matching Vercel's current
+default so the platform changing its default cannot silently move production.
+
+**Regression guard** — `src/lib/__tests__/function-duration.test.ts` (20 tests)
+walks every route file, and fails if a route that references Gemini has no
+`maxDuration`, or declares one outside 30–60s. Proven to fail before and pass
+after by removing the cap from `/api/breakdown` and re-running. A new AI route
+added without a cap now breaks CI instead of quietly becoming a five-minute
+cost liability.
+
+**Test suite: 236 passing (was 216).** Typecheck and Prettier clean.
+
+## 4. ⚠️ Decision needed: the function region
+
+This is potentially the single largest latency win available, and I cannot
+settle it from here — the Supabase API sits behind Cloudflare, so DNS and
+latency probes do not reveal the origin region.
+
+**What I need from you:** Supabase → your project → **Settings → General** →
+read the **Region** field. Tell me what it says.
+
+Then:
+
+| Supabase region | Recommendation |
+| --- | --- |
+| London / `eu-west-2` | Set Vercel functions to **`lhr1`** — puts compute next to both the database and the users |
+| Frankfurt / Ireland | Set functions to **`fra1`** / **`dub1`** to match |
+| A US region | Harder call: `iad1` keeps functions next to the DB (better, since routes make several sequential queries) but adds a transatlantic hop for every UK user. Worth also asking whether the DB should move before launch, while there is little data to migrate |
+
+**Do not change this yet.** Region is set in Settings → Functions, applies on
+next deploy, and should be verified with a real timing comparison rather than
+assumed. I would also not do it in the same change as the Stripe live cutover.
+
+There is a second, non-obvious reason to resolve this before launch: **UK GDPR**.
+If functions run in `iad1`, personal data is processed in the United States,
+which affects the transfer position recorded in `legal/ROPA.md` and the Privacy
+Policy. Moving compute to `lhr1` removes that question entirely.
+
+## 5. Deliberately not changed
+
+**AA3-D5 — the silent 200 on upstream failure.** Making the stream `error()`
+instead of `close()` would surface a real failure to the client, which is
+better. I have not changed it because it alters the wire contract for 17 routes
+and the correct verification is a browser test of each affected UI — and
+browser/visual testing is a known blind spot in my tooling, which has already
+cost us one shipped bug (the modal). Callers currently treat an empty body as a
+failure, so behaviour is safe, just less informative. Flagged for a session
+where the UI can be checked directly.
+
+## 6. Dashboard actions for you
+
+1. **Settings → Functions → Fluid Compute**: confirm it is **enabled** (it
+   should be, by default). If it is off, the duration defaults are far lower and
+   the caps above behave differently.
+2. **Settings → Functions → Default Max Duration**: set to **15 seconds**. This
+   catches every route not explicitly capped above — all the CRUD endpoints and
+   SSR pages — none of which should ever take longer.
+3. **Settings → Build and Deployment → Node.js Version**: confirm **24.x**.
+4. **Supabase → Settings → General → Region**: report it back for §4.
+
+## 7. How to test AA3
+
+```bash
+git checkout phase-aa-vercel-pro
+npm run typecheck && npx vitest run    # expect 236 passed
+```
+
+- **Prove the guard works:** delete the `maxDuration` line from any AI route and
+  re-run the tests — it must fail with a named, actionable message. Restore it.
+- **After deploying:** Vercel → Deployments → the deployment → **Functions** tab
+  → each AI route should show a **60s** max duration, not 300s.
+- **Behavioural check:** run a normal task breakdown on production. It must
+  stream and complete exactly as before — the 60s cap and 45s abort are far
+  above normal completion time, so nothing user-visible should change.

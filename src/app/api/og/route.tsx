@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 /** Branded OpenGraph/Twitter share image (1200×630). */
 export function GET(): Response {

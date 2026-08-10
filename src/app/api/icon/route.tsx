@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 /** Generated app icon (the "U" mark) at the requested size. PNG output. */
 export function GET(req: NextRequest): Response {

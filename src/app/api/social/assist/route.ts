@@ -23,6 +23,7 @@ import { sanitizeText } from "@/lib/parseBreakdown";
 import { containsCrisisLanguage, CRISIS_SIGNPOST } from "@/lib/safety";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 const toneSchema = z.object({

@@ -11,6 +11,7 @@ import {
 import { getRequestIdentity, checkBurst, BURST } from "@/lib/quota";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 function json(body: unknown, status: number): Response {

@@ -4,6 +4,7 @@ import { createSupabaseServer } from "@/lib/supabase/server";
 import { getWeekWins } from "@/lib/wins";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 export const dynamic = "force-dynamic";
 
 /**

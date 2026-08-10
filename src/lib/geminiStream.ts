@@ -1,5 +1,23 @@
 import { BREAKDOWN_MODEL, getGemini } from "./gemini";
 
+/**
+ * Hard ceiling on a single Gemini stream (AA3-D3).
+ *
+ * Without this, a hung upstream call had nothing to stop it: the `for await`
+ * below simply waited, and the only backstop was Vercel's function timeout —
+ * which defaults to **300 seconds** under fluid compute. One stalled request
+ * could therefore hold a function instance for five minutes.
+ *
+ * Deliberately set below the 60s `maxDuration` the AI routes declare, so the
+ * stream fails on OUR terms (logged, stream closed cleanly) rather than being
+ * killed mid-flight by the platform. Healthy breakdowns complete in well under
+ * ten seconds, so this only ever trips on a genuine stall.
+ *
+ * Note: per the SDK, aborting is client-side only — it frees the function, it
+ * does not cancel Google's work, and the tokens already produced are billed.
+ */
+export const GEMINI_STREAM_TIMEOUT_MS = 45_000;
+
 interface StreamArgs {
   system: string;
   user: string;
@@ -47,6 +65,7 @@ export function streamGeminiJson({
             responseMimeType: "application/json",
             maxOutputTokens: maxTokens,
             thinkingConfig: { thinkingBudget: 0 },
+            abortSignal: AbortSignal.timeout(GEMINI_STREAM_TIMEOUT_MS),
           },
         });
 
@@ -62,7 +81,19 @@ export function streamGeminiJson({
         }
         controller.close();
       } catch (err) {
-        console.error("gemini stream error:", err);
+        // A stall aborted by GEMINI_STREAM_TIMEOUT_MS surfaces as a
+        // TimeoutError/AbortError. Log it distinctly so it is separable from a
+        // genuine upstream fault when reading Vercel logs (AA5).
+        const name = err instanceof Error ? err.name : "";
+        if (name === "TimeoutError" || name === "AbortError") {
+          console.error(
+            `gemini stream timed out after ${GEMINI_STREAM_TIMEOUT_MS}ms`,
+          );
+        } else {
+          console.error("gemini stream error:", err);
+        }
+        // Closing (rather than erroring) preserves the existing wire contract:
+        // callers already treat an empty/partial body as a failure.
         try {
           controller.close();
         } catch {

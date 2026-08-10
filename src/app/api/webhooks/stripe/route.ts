@@ -4,6 +4,7 @@ import { getStripe } from "@/lib/stripe";
 import { getServiceClient } from "@/lib/supabaseServer";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 export const dynamic = "force-dynamic";
 
 function json(body: unknown, status: number): Response {
