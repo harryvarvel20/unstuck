@@ -24,7 +24,7 @@ Status key: ✅ compliant-by-design/evidence · 🔧 action taken this phase ·
 
 | Item | Status | Notes |
 |---|---|---|
-| ICO registration + fee | 📋 | ~15 min at ico.org.uk — **required before launch** |
+| ICO registration + fee | ✅ | **Done.** Registered 4 Aug 2026, reference **ZC213841**, expires **3 Aug 2027**. Now cited in the Privacy Policy, RoPA and DPIA |
 | Lawful bases per activity | 🔧/⚖ | Draft mapping: contract (accounts, billing, AI features the user invokes), legitimate interests (abuse limits, security logs), consent (optional analytics). Needs ⚖ review |
 | Record of Processing Activities | 🔧/⚖ | The processor table + data inventory across PARENTS-REPORT/SECURITY-REPORT serves as the working RoPA; formalise with solicitor |
 | DPIA (health-adjacent, vulnerable users, children context) | ⚖ | **Required.** The reports give a solicitor ~90% of the inputs; commission before scale marketing |
@@ -108,7 +108,8 @@ search for "ADHV"** before heavy marketing spend — a solicitor/agent task.
 
 ## Launch-blocking shortlist (my honest ranking)
 
-1. **ICO registration** (📋, ~15 min, legally required) — do before launch.
+1. ~~**ICO registration**~~ — ✅ **complete** (ZC213841, 4 Aug 2026). Renew by
+   **3 Aug 2027**; lapsing is a criminal offence under s.137 DPA 2018.
 2. **Solicitor pass over Terms + Privacy + Art-9 question + OSA risk
    assessments** (⚖) — strongly advised before *marketing at scale*; a
    soft launch while it's in progress is a business-risk call that is yours.

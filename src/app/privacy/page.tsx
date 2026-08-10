@@ -30,9 +30,12 @@ export default function PrivacyPage() {
 
         <Section title="Who we are">
           <p>
-            ADHV is the data controller for the personal data described here.
-            Contact: <span className="text-text">harryvarvel@gmail.com</span>.
-            You can also reach us about anything in this policy at that address.
+            ADHV is a trading name of Harry Varvel, the data controller for the
+            personal data described here. We are registered with the UK
+            Information Commissioner&apos;s Office under registration reference{" "}
+            <span className="text-text">ZC213841</span>. Contact:{" "}
+            <span className="text-text">harryvarvel@gmail.com</span>. You can
+            also reach us about anything in this policy at that address.
           </p>
         </Section>
 

@@ -2,7 +2,8 @@
 
 **Controller:** ADHV (sole trader — Harry Varvel) · **Contact:**
 harryvarvel@gmail.com
-**Version:** 1.0 · **Date:** 31 July 2026 · **Status:** self-completed,
+**ICO registration:** ZC213841 — registered 4 Aug 2026, expires 3 Aug 2027
+**Version:** 1.1 · **Date:** 10 Aug 2026 · **Status:** self-completed,
 pending professional review
 **Prepared by:** the controller, with AI assistance, following the ICO DPIA
 template. **Not legal advice.**
@@ -168,7 +169,11 @@ Likelihood/severity scored _low / medium / high_; risk is the combination.
 | Measures approved by           | Controller, 31 July 2026                                                                          |
 | Review date                    | On any material change to data flows, or within 12 months                                         |
 
-**Actions outstanding:** (1) ICO registration and fee; (2) accept processor
-DPAs in each supplier dashboard; (3) professional review of R9 and of the
-Terms/Privacy; (4) re-run this DPIA if child data, advertising, or automated
-decision-making is ever introduced.
+**Actions outstanding:** (1) ~~ICO registration and fee~~ — **done, 4 Aug 2026,
+reference ZC213841**; (2) accept processor DPAs in each supplier dashboard;
+(3) professional review of R9 and of the Terms/Privacy; (4) re-run this DPIA if
+child data, advertising, or automated decision-making is ever introduced.
+
+**Renewal:** the ICO registration must be renewed by **3 August 2027**. Lapsing
+is a criminal offence under s.137 DPA 2018, so this date belongs in a calendar,
+not only in this document.

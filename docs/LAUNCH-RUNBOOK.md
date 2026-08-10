@@ -16,13 +16,14 @@ You'll need: business type (sole trader is fine), your name/DOB/address, a UK
 bank account for payouts, possibly photo ID. Starting it breaks nothing —
 sandbox keeps working alongside.
 
-### 1b. ICO registration — ~15 min, ~£52/yr
+### 1b. ICO registration — ✅ **DONE**
 
-`ico.org.uk` → register as a data controller, pay the fee. You'll already have
-your business details open from Stripe.
+Registered **4 August 2026**, reference **ZC213841**, expires **3 August 2027**.
+Now cited in the Privacy Policy, `legal/ROPA.md` and `legal/DPIA.md`.
 
-**When it's done, tell me** — the Privacy Policy deliberately does _not_ claim
-registration yet, and I'll add it.
+> ⚠️ **Put 3 August 2027 in your calendar now.** Letting the registration lapse
+> while still processing personal data is a criminal offence under s.137 of the
+> Data Protection Act 2018. Set the reminder for a month early.
 
 ### 1c. Vercel → Pro — ~5 min, ~$20/mo
 
@@ -131,7 +132,7 @@ If any step fails, stop and fix before telling anyone the app is live.
 - [ ] Real payment test passed and refunded (Phase 4)
 - [ ] `LAUNCH10` works end to end
 - [ ] Sign-up by magic link works on a fresh email
-- [ ] Privacy Policy updated with ICO registration (tell me)
+- [x] Privacy Policy updated with ICO registration (ZC213841)
 - [ ] Processor DPAs accepted: Supabase, Vercel, Google, Stripe, Resend
 - [ ] GitHub: 2FA on, repo private, branch protection, Dependabot
 - [ ] Supabase: confirm backup posture

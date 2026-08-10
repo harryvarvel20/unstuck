@@ -2,7 +2,8 @@
 
 **Controller:** ADHV (sole trader — Harry Varvel), UK · **Contact:**
 harryvarvel@gmail.com · **DPO:** none required
-**Version:** 1.0 · **Date:** 31 July 2026 · Art. 30 UK GDPR record.
+**ICO registration:** ZC213841 — registered 4 Aug 2026, expires 3 Aug 2027
+**Version:** 1.1 · **Date:** 10 Aug 2026 · Art. 30 UK GDPR record.
 Self-completed; not legal advice.
 
 > Art. 30(5) exempts organisations under 250 staff _except_ where processing
