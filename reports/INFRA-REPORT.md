@@ -1292,3 +1292,149 @@ select subject, sum(count) as calls
 ```
 
 `subject` is `user:<uuid>` (join to `auth.users`) or `ip:<hash>`.
+
+---
+
+# AA9 — Final regression & GO/NO-GO
+
+Run 11 August 2026.
+
+## 1. AA9-D1 — High (process): the CI gate was red, and nobody knew
+
+The final pass ran the CI workflow's steps individually rather than trusting
+that they passed. **Two of the eight were failing on `main`.**
+
+**(a) `npm audit --audit-level=critical` exited 1.** `vitest <=3.2.5` carries a
+**critical** advisory — arbitrary file read and execution when the Vitest UI
+server is listening. Dev-only, and the UI is never run here, so real exposure
+was nil. But it made the audit step permanently red.
+
+**Fixed:** vitest `2.1.9 → 4.1.10`. All 270 tests pass unchanged — the suite
+only uses `vi.hoisted`, `vi.mock` and the standard assertions, which are stable
+across those majors. Criticals **1 → 0**; total advisories **11 → 6**.
+
+**(b) `crisis-routing-adversarial.ts` exited 1** on a case its own label
+described as a `KNOWN LIMITATION`. The failing case is a false **positive** —
+the gate fires on *"I want to die of embarrassment"* — which is the safe
+direction of error.
+
+**I did not loosen the crisis regex to make it pass.** Allowing "want to die"
+through would risk a false **negative** on someone who means it. That trade is
+not acceptable in this product, and it is worth being explicit that the fix was
+to the *reporting*, never to the detection.
+
+**Fixed:** an explicit `known` flag. Accepted false positives are printed and
+counted but do not fail the build; a false negative still does. The script also
+now flags a `known` case that starts *passing*, so it cannot silently go stale.
+
+**Why this mattered more than either bug:** a gate that is permanently red is a
+gate nobody reads. Both failures were individually harmless; the habit they
+create is not.
+
+## 2. Deliberately not fixed: the remaining `high` advisories
+
+`next@15.5.22` is flagged high via transitive `postcss` and `sharp`. The
+available fix is **Next 16 — a framework major**.
+
+**Assessment: no realistic attack path in this app.**
+
+- The codebase imports `next/image` **zero times**. `sharp` is pulled in for
+  image optimisation that is never invoked, so the libvips CVEs have nothing to
+  process.
+- The `postcss` advisories are build-time and require attacker-controlled CSS
+  or `sourceMappingURL`. No user supplies CSS to this project.
+
+A framework major upgrade days before launch risks considerably more than it
+protects. **Revisit post-launch**, deliberately, with time to test.
+
+## 3. Full CI gate — green
+
+| Step | Exit |
+| --- | --- |
+| `npm run typecheck` | 0 |
+| `npm run lint` | 0 |
+| `npm run format:check` | 0 |
+| `npm test` (270 tests, 18 files) | 0 |
+| `npm run build` | 0 |
+| `scripts/parsecheck.ts` (38 checks) | 0 |
+| `scripts/crisis-routing-adversarial.ts` (22 pass, 0 fail, 1 accepted) | 0 |
+| `npm audit --audit-level=critical` | 0 |
+
+## 4. Production verification
+
+**Routes** — all correct, no `X-Vercel-Mitigated` anywhere:
+
+| Result | Routes |
+| --- | --- |
+| 200 | `/`, `/app`, `/pricing`, `/toolkit`, `/login`, `/privacy`, `/terms`, `/guidelines`, `/accessibility`, `/welcome` |
+| 307 (auth redirect) | `/activity`, `/parents`, `/account` |
+| 404 | unknown paths |
+
+**Phase AA surfaces:** `robots.txt` 200 · `sitemap.xml` 200 (8 entries) ·
+`/api/health` `{"status":"ok","db":true}` · `/api/og` 200 image/png ·
+`/api/cron/purge` **401** to anonymous · manifest 200 · `sw.js` 200.
+
+**Security headers:** CSP, HSTS, X-Frame-Options, nosniff, Referrer-Policy,
+Permissions-Policy all present. **No `X-Robots-Tag`** (production stays
+indexable). No `x-powered-by`.
+
+**Money path:** `POST /api/webhooks/stripe` unsigned → **400**. Signature
+verification intact — the single most important regression check.
+
+**🔴 Crisis-safety invariant, verified live in production:**
+
+```
+POST /api/navigate  {"query":"i want to end my life"}
+→ {"crisis":true,"message":"... call Samaritans free, any time, on 116 123.
+   If you're in immediate danger, call 999."}
+```
+
+Deterministic, before any AI call, with a benign control query routing normally
+to `/app`. **This is the invariant that matters more than every other line in
+this report, and it holds.**
+
+## 5. What I could NOT verify
+
+Stated plainly, because an unverified claim is worse than a known gap:
+
+| Not verified | Why it matters |
+| --- | --- |
+| **The magic-link login flow end to end** | AA6 changed *when* the Supabase client loads on `/login`. The page renders and 270 tests pass, but nothing here exercises click → `signInWithOtp` → inbox |
+| **Social share previews** | The `robots.txt` OG allowlist is unit-tested, but only pasting a link into WhatsApp proves a crawler renders the card |
+| **Any real payment** | Stripe is still in sandbox |
+| **Visual/browser behaviour generally** | A structural blind spot in my tooling that has already cost one shipped bug (the modal). Every UI claim in this report rests on build output and unit tests, not on a rendered page |
+
+## 6. GO / NO-GO
+
+### The app: **GO**
+
+Deployed, verified, safe. Nine workstreams complete, defects found and fixed,
+CI green, the crisis invariant proven in production.
+
+### Taking money: **NO-GO** — three gates
+
+1. **🔴 Stripe live cutover is incomplete.** Blocked on 2FA (support ticket
+   open). No live keys, no live prices, no verified payment.
+2. **🔴 Price mismatch.** The site advertises **£9.99/£99**; Stripe still holds
+   **£7.99/£59** sandbox prices. Nobody can be wrongly charged today because
+   sandbox takes no real money — but going live without reconciling these would
+   charge a price the site does not advertise.
+3. **🔴 The real payment test has not run.** Test mode passing does not prove
+   live mode works: different keys, different webhook secret, a real card, real
+   3-D Secure.
+
+### One open question that could be a compliance gate
+
+**Which Gemini tier is the API key on?** On the **free** tier Google may use
+submitted data to improve their models — and the Privacy Policy and Terms §6
+both state content is *never* used to train AI models. If the key is on the
+free tier, that statement is untrue and must be fixed **before** launch, not
+after. This is a five-minute check at `aistudio.google.com` and it outranks
+every other outstanding item except Stripe.
+
+### Recommendation
+
+Do not announce or send creator codes until gates 1–3 close and the Gemini tier
+is confirmed. Everything else outstanding — uptime monitoring, billing alerts,
+preview protection, branch protection — is hardening that improves the odds but
+does not gate a launch.
