@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { PRO_FAIR_USE } from "@/lib/quota";
 
 /**
  * The price is stated in three separate user-facing places: the landing page,
@@ -59,6 +60,40 @@ describe("pricing is consistent across every user-facing surface", () => {
   it("the annual price is stated on the pricing cards and in the Terms", () => {
     expect(read("src/components/PricingCards.tsx")).toContain(ANNUAL);
     expect(read("src/app/terms/page.tsx")).toContain(ANNUAL);
+  });
+
+  it("no surface claims 'unlimited' without the fair-use qualifier", () => {
+    // Pro carries a real daily ceiling (PRO_FAIR_USE). Any marketing surface
+    // that says "unlimited" without qualifying it is making a claim the code
+    // does not honour — the same failure AA4 found in the retention schedule.
+    for (const file of [
+      "src/app/page.tsx",
+      "src/components/PricingCards.tsx",
+    ]) {
+      const src = read(file);
+      if (/[Uu]nlimited breakdowns/.test(src)) {
+        expect(
+          /fair use/i.test(src),
+          `${file} says "unlimited breakdowns" but never says "fair use", ` +
+            `while the server enforces ${PRO_FAIR_USE.breakdownPerDay}/day.`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("the Terms state the actual enforced fair-use number", () => {
+    // If the ceiling changes in code, the Terms must change with it.
+    expect(
+      read("src/app/terms/page.tsx"),
+      `Terms must state the enforced ceiling of ` +
+        `${PRO_FAIR_USE.breakdownPerDay} breakdowns per day.`,
+    ).toContain(String(PRO_FAIR_USE.breakdownPerDay));
+  });
+
+  it("the fair-use ceiling stays well clear of real usage", () => {
+    // ~20/day is the heaviest plausible genuine user. A ceiling that drifted
+    // down toward that would start clipping paying customers.
+    expect(PRO_FAIR_USE.breakdownPerDay).toBeGreaterThanOrEqual(40);
   });
 
   it("the annual saving claim is arithmetically true", () => {

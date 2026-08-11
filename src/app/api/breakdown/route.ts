@@ -8,7 +8,13 @@ import {
   ANON_DAILY_LIMIT,
   type RateLimitResult,
 } from "@/lib/rateLimit";
-import { getRequestIdentity, checkBurst, BURST } from "@/lib/quota";
+import {
+  getRequestIdentity,
+  checkBurst,
+  consumeProFairUse,
+  BURST,
+  PRO_FAIR_USE,
+} from "@/lib/quota";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -39,9 +45,10 @@ export async function POST(req: NextRequest): Promise<Response> {
   const { input, mode } = parsed.data;
 
   // --- 2. Rate limits (server-enforced) -----------------------------------
-  // Signed-in users are limited per-user (Pro = unlimited); anonymous users
-  // per hashed IP. A per-minute burst ceiling applies to everyone (incl. Pro)
-  // because this endpoint spends real money.
+  // Signed-in users are limited per-user; anonymous users per hashed IP. A
+  // per-minute burst ceiling applies to everyone (incl. Pro) because this
+  // endpoint spends real money. Pro carries a daily FAIR-USE ceiling rather
+  // than being uncapped — see PRO_FAIR_USE.
   const failOpen: RateLimitResult = {
     allowed: true,
     count: 0,
@@ -50,8 +57,10 @@ export async function POST(req: NextRequest): Promise<Response> {
   };
 
   let quota: RateLimitResult = failOpen;
+  let isPro = false;
   try {
     const identity = await getRequestIdentity(req);
+    isPro = identity.plan === "pro";
 
     if (!(await checkBurst(identity, "breakdown", BURST.breakdown))) {
       return json(
@@ -63,8 +72,18 @@ export async function POST(req: NextRequest): Promise<Response> {
       );
     }
 
-    if (identity.plan === "pro") {
-      quota = { allowed: true, count: 0, limit: Infinity, enforced: true };
+    if (isPro) {
+      const fair = await consumeProFairUse(
+        identity,
+        "breakdown",
+        PRO_FAIR_USE.breakdownPerDay,
+      );
+      quota = {
+        allowed: fair.allowed,
+        count: fair.count,
+        limit: PRO_FAIR_USE.breakdownPerDay,
+        enforced: fair.enforced,
+      };
     } else if (identity.user) {
       quota = await consumeUserQuota(identity.user.id);
     } else {
@@ -79,7 +98,12 @@ export async function POST(req: NextRequest): Promise<Response> {
     return json(
       {
         error: "limit_reached",
-        message: "You've used your free breakdowns for today.",
+        // A Pro subscriber hitting the fair-use ceiling must never be told
+        // they have run out of "free" breakdowns — they are paying. Different
+        // situation, different words, and no upsell.
+        message: isPro
+          ? `That's ${PRO_FAIR_USE.breakdownPerDay} breakdowns today — a lot for one day. Your allowance resets at midnight. If you genuinely need more, email us and we'll sort it.`
+          : "You've used your free breakdowns for today.",
         limit: quota.limit,
       },
       429,

@@ -21,6 +21,24 @@ export const BURST = {
   aiLight: 20,
 } as const;
 
+/**
+ * Fair-use ceilings for **Pro**.
+ *
+ * Pro was previously uncapped daily (`limit: Infinity`), bounded only by the
+ * per-minute burst above. Sustained, that is ~11,520 breakdowns/day from a
+ * single subscription — an unbounded cost liability against ~£6.16 of net
+ * revenue.
+ *
+ * 50/day is roughly **2.5× the heaviest plausible genuine user** (~20/day),
+ * so no real customer should ever meet it, while bounding a scripted account
+ * to ~£3.30/month of model spend. Disclosed in Terms §9 and reflected in the
+ * "(fair use)" qualifier on the pricing surfaces — see
+ * reports/PRICING-AND-TRIAL-REVIEW.md.
+ */
+export const PRO_FAIR_USE = {
+  breakdownPerDay: 50,
+} as const;
+
 export interface RequestIdentity {
   user: { id: string; email: string | null } | null;
   plan: "free" | "pro";
@@ -89,6 +107,41 @@ export async function consumeFeature(
   });
   if (error) {
     console.error(`consume_feature_usage(${feature}) failed:`, error.message);
+    return { allowed: true, count: 0, enforced: false };
+  }
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    allowed: Boolean(row?.allowed),
+    count: Number(row?.current_count ?? 0),
+    enforced: true,
+  };
+}
+
+/**
+ * Consume against a **Pro fair-use ceiling**.
+ *
+ * Deliberately separate from `consumeFeature`, which returns early for Pro.
+ * Skipping Pro is exactly what this must not do — that is the whole point.
+ * Keyed `pro:<feature>` so it never collides with the free-plan counters.
+ *
+ * Fails **open**, like every other limiter here: an infrastructure hiccup
+ * must never block a paying customer from using what they paid for.
+ */
+export async function consumeProFairUse(
+  identity: RequestIdentity,
+  feature: string,
+  limit: number,
+): Promise<FeatureQuotaResult> {
+  const service = getServiceClient();
+  if (!service) return { allowed: true, count: 0, enforced: false };
+
+  const { data, error } = await service.rpc("consume_feature_usage", {
+    p_subject: identity.subject,
+    p_feature: `pro:${feature}`,
+    p_limit: limit,
+  });
+  if (error) {
+    console.error(`pro fair-use (${feature}) failed:`, error.message);
     return { allowed: true, count: 0, enforced: false };
   }
   const row = Array.isArray(data) ? data[0] : data;

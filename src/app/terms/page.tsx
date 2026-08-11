@@ -20,7 +20,7 @@ export default function TermsPage() {
         </h1>
         <p className="text-sm text-muted">
           Plain English, but these are the actual terms of our agreement. Last
-          updated 31 July 2026.
+          updated 11 August 2026.
         </p>
 
         <p className="text-muted">
@@ -190,6 +190,14 @@ export default function TermsPage() {
             apply per-minute limits to protect the service from abuse. Safety
             tools — the cool-down, SOS, and crisis signposting — are never
             limited or paywalled.
+          </p>
+          <p className="mt-2">
+            Pro is unlimited in normal use, subject to fair use: a ceiling of{" "}
+            <strong className="text-text">50 AI breakdowns per day</strong>,
+            which resets at midnight. That is far more than anyone uses in a day
+            — it exists only to stop automated abuse running up costs, and you
+            are very unlikely ever to see it. If you genuinely need more, email
+            us and we will sort it out.
           </p>
         </Section>
 

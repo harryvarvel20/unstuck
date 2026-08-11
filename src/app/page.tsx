@@ -147,7 +147,7 @@ export default function LandingPage() {
               </span>
             </p>
             <ul className="mt-3 flex flex-col gap-1.5 text-sm text-text">
-              <li>· Unlimited breakdowns &amp; focus sessions</li>
+              <li>· Unlimited breakdowns &amp; focus sessions (fair use)</li>
               <li>· Time Truth, timed day plan &amp; routines</li>
               <li>· Regulate, Dopamenu, Idea Vault &amp; more</li>
               <li>· Activity Center — your people, when you want them</li>

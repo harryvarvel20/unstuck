@@ -18,7 +18,7 @@ const FREE_FEATURES = [
 ];
 
 const PRO_FEATURES = [
-  "Unlimited breakdowns & focus sessions — your body double, any time",
+  "Unlimited breakdowns & focus sessions (fair use) — your body double, any time",
   "Time Truth + the timed day plan that reflows when life happens",
   "Morning plan, evening wind-down & resilient routines",
   "Regulate suite: decompress + the message-spiral defuser",
