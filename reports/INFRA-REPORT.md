@@ -1137,3 +1137,158 @@ curl -s https://adhvtool.com/sitemap.xml    # expect 8 <url> entries
   demonstrate.
 - Google Search Console: submit `https://adhvtool.com/sitemap.xml` once the
   domain is verified.
+
+---
+
+# AA8 — Cost control & unit economics
+
+Prices verified against live Google AI pricing documentation, 11 Aug 2026.
+
+## 1. Inputs
+
+| | Figure |
+| --- | --- |
+| Gemini 2.5 Flash input | **$0.30** / 1M tokens |
+| Gemini 2.5 Flash output | **$2.50** / 1M tokens (thinking included; `thinkingBudget: 0`, so none is generated) |
+| Tokens per breakdown — input | ~1,000 (system prompt + user task, capped at `MAX_INPUT_CHARS = 500`) |
+| Tokens per breakdown — output | ~450 typical, **2,048 hard ceiling** (`maxOutputTokens`) |
+| Pro price | £7.99/mo · £59/yr |
+| Stripe UK fee | ~1.5% + 20p |
+
+**Cost per breakdown:** ~**£0.0011** typical, ~**£0.0043** worst case.
+**Net revenue per Pro month:** £7.99 − £0.32 = **£7.67**.
+
+## 2. The healthy news: margins on genuine use are excellent
+
+A heavy genuine user doing **20 breakdowns a day** (already far beyond
+plausible — most people break down a handful of tasks) costs:
+
+| | Monthly AI cost | Gross margin |
+| --- | --- | --- |
+| Typical output length | **£0.66** | **91%** |
+| Worst-case output length | £2.58 | 66% |
+
+**Break-even is ~232 breakdowns/day** at typical token counts, or ~59/day at
+the absolute worst case. No real person approaches that.
+
+Fixed costs are ~$20/mo (Vercel Pro; Supabase, Resend and Google all within
+free tiers at present) plus £52/yr ICO. **Roughly three Pro subscribers cover
+the entire infrastructure bill.**
+
+## 3. AA8-D1 — Medium (commercial): the adversarial ceiling
+
+Pro is sold as **"Unlimited breakdowns & focus sessions"** (landing page and
+`PricingCards`), and the code honours that literally: `identity.plan === "pro"`
+sets `limit: Infinity`. The **only** ceiling is `BURST.breakdown = 8/min`.
+
+Sustained, that is 11,520 calls/day — **345,600/month from one subscription**:
+
+| | Cost to you | Revenue | Multiple |
+| --- | --- | --- | --- |
+| Typical tokens | **£380/mo** | £7.99 | **48×** |
+| Worst-case tokens | **£1,486/mo** | £7.99 | **194×** |
+
+**The sharper version is the free trial.** `TRIAL_DAYS = 7` with unlimited
+access and no daily cap: 80,640 calls before a penny is charged —
+**£89–£347 of Gemini spend for £0 revenue**, then cancel.
+
+**Mitigating factors, stated honestly so this is not overblown:**
+
+- Stripe Checkout collects a **card** even for a trial, so an abuser is
+  identifiable and chargeable. That is real friction, not none.
+- This requires deliberate scripting. It is not something a real user drifts
+  into.
+- At current traffic the expected loss is **£0**.
+
+It is a tail risk, not a present bleed — but it is uncapped, and uncapped tail
+risks are worth closing *before* the marketing push rather than during it.
+
+## 4. What I did, and what I deliberately did not
+
+**Did not: add a daily cap on Pro breakdowns.** It is the obvious fix and I am
+not doing it unilaterally, because **your public pricing says "unlimited"**.
+Quietly capping it would make a published commercial promise untrue — exactly
+the failure mode AA4 found in the retention schedule, pointing the other way.
+If the marketing says unlimited, either the product is unlimited or the
+marketing changes. That is your call, not mine.
+
+**Your Terms already cover you contractually.** Section 8 prohibits using
+"automated tools to bulk-generate AI content" and reserves the right to
+"restrict features, or suspend or close an account". Section 9 discloses that
+per-minute limits apply. So enforcement against a scripted abuser is already
+supported — **the gap was detection, not permission.**
+
+**Did: close the detection gap.** `consumeFeature` returns early for Pro
+("Pro users skip counting"), so no daily quota rows exist for them. But
+`checkBurst` runs for **every** caller including Pro, writing to
+`feature_usage` under `burst:<name>:<minute>`. The data has been accumulating
+since launch; nothing had ever read it.
+
+`0025_ai_usage_report.sql` adds `ai_usage_report()`, called by the existing
+daily cron so it costs no extra invocation. Each night the logs now carry:
+
+```json
+{"window_days":1,"total_ai_calls":N,"distinct_subjects":N,
+ "max_calls_one_subject":N,"subjects_over_200_calls":N}
+```
+
+**It deliberately returns no identifiers.** `subject` holds `user:<uuid>` or
+`ip:<hash>` — both pseudonymous personal data — and this output goes to Vercel
+logs, which `legal/ROPA.md` states contain no PII. Aggregates keep that
+statement true. `max_calls_one_subject` is enough to tell you something is
+wrong; identifying who is a deliberate second step (query in §7).
+
+A reporting failure returns 200 and `usage: null` — the retention purge is the
+job that must not be missed, and a cosmetic fault must not make a compliance
+run look failed. There is a test for that.
+
+## 5. Decisions for you
+
+1. **Set a Google Cloud billing budget and alert.** This is the actual hard
+   stop and the single most important item in AA8. Everything above only
+   *tells* you; a budget alert bounds the damage. Suggested: alert at £25 and
+   £50/month on the Gemini project. **£0, five minutes, do it before launch.**
+2. **Consider `BURST.breakdown: 8 → 4`.** No human produces 8 breakdowns a
+   minute; 4 still allows one every 15 seconds. It halves the adversarial
+   ceiling and does **not** contradict "unlimited" — per-minute limits are
+   already disclosed in Terms §9. Not changed unilaterally because it is
+   user-facing behaviour I cannot test in a browser.
+3. **Decide the "unlimited" position deliberately.** Either keep it as a
+   genuine promise backed by the abuse clause and monitoring, or add a
+   fair-use cap *and* update the landing page and `PricingCards` copy in the
+   same change. Both are defensible; a mismatch between them is not.
+4. **Lower the Vercel spend alert** from the $200 default to ~$40.
+
+## 6. Cost position
+
+**Recommended AA8 spend: £0.** Every control above is free. The paid options
+considered and rejected across Phase AA — Password Protection ($150/mo), SAML
+($300/mo), Flags Explorer ($250/mo), Observability Plus, Speed Insights
+($10/mo, deferred) — total **$710/mo avoided** against a ~$20/mo actual bill.
+
+## 7. How to test AA8
+
+```bash
+npx vitest run src/lib/__tests__/cron-purge.route.test.ts   # expect 9 passed
+```
+
+Apply `0025_ai_usage_report.sql`, then:
+
+```sql
+select public.ai_usage_report(1);   -- expect aggregates, no identifiers
+```
+
+**If `max_calls_one_subject` ever looks alarming**, identify the account
+ad-hoc — deliberately not part of the automated job:
+
+```sql
+select subject, sum(count) as calls
+  from public.feature_usage
+ where usage_date > current_date - 1
+   and feature like 'burst:%'
+ group by subject
+ order by calls desc
+ limit 10;
+```
+
+`subject` is `user:<uuid>` (join to `auth.users`) or `ip:<hash>`.

@@ -86,15 +86,20 @@ describe("/api/cron/purge — authorisation", () => {
 });
 
 describe("/api/cron/purge — behaviour when authorised", () => {
-  it("calls purge_expired_data once and returns the row counts", async () => {
+  it("calls purge_expired_data and returns the row counts", async () => {
     const res = await GET(req(`Bearer ${SECRET}`));
     expect(res.status).toBe(200);
-    expect(h.rpc).toHaveBeenCalledTimes(1);
     expect(h.rpc).toHaveBeenCalledWith("purge_expired_data");
 
     const body = await res.json();
     expect(body.ok).toBe(true);
     expect(body.purged.anon_usage).toBe(12);
+  });
+
+  it("also reports AI usage volume (AA8)", async () => {
+    const res = await GET(req(`Bearer ${SECRET}`));
+    expect(res.status).toBe(200);
+    expect(h.rpc).toHaveBeenCalledWith("ai_usage_report", { p_days: 1 });
   });
 
   it("surfaces a database failure as a 500 rather than a false success", async () => {
@@ -108,11 +113,29 @@ describe("/api/cron/purge — behaviour when authorised", () => {
     expect(body.error).toBe("purge_failed");
   });
 
+  it("still returns 200 if only the usage report fails", async () => {
+    // The retention purge is the job that must not be missed. A reporting
+    // failure is informational and must not mark the whole run as failed —
+    // otherwise a cosmetic bug would look like a compliance failure.
+    h.rpc
+      .mockResolvedValueOnce({ data: { anon_usage: 1 } as never, error: null })
+      .mockResolvedValueOnce({
+        data: null as never,
+        error: { message: "function does not exist" },
+      });
+    const res = await GET(req(`Bearer ${SECRET}`));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.usage).toBeNull();
+  });
+
   it("is safe to run twice — no state carried between invocations", async () => {
+    h.rpc.mockClear();
     await GET(req(`Bearer ${SECRET}`));
     await GET(req(`Bearer ${SECRET}`));
     // Vercel cron delivery is best-effort and can double-fire; the route must
-    // simply call the (idempotent) function again.
-    expect(h.rpc).toHaveBeenCalledTimes(2);
+    // simply call the (idempotent) functions again. Two RPCs per run.
+    expect(h.rpc).toHaveBeenCalledTimes(4);
   });
 });

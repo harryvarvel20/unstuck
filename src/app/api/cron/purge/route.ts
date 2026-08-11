@@ -52,5 +52,23 @@ export async function GET(req: NextRequest): Promise<Response> {
   // Logged so the run is auditable from Vercel's runtime logs — evidence
   // that the retention promise is actually being kept.
   console.log("retention purge:", JSON.stringify(data));
-  return json({ ok: true, purged: data }, 200);
+
+  // AA8: piggyback a daily AI-volume figure on the job that already runs.
+  // Pro is sold as unlimited, so nothing else surfaces how much a single
+  // account is consuming until a Google Cloud invoice does. Aggregates only —
+  // never identifiers, so these logs stay PII-free per legal/ROPA.md.
+  // Non-fatal: a reporting failure must not fail the retention run.
+  let usage: unknown = null;
+  const { data: usageData, error: usageError } = await supabase.rpc(
+    "ai_usage_report",
+    { p_days: 1 },
+  );
+  if (usageError) {
+    console.error("ai usage report failed:", usageError.message);
+  } else {
+    usage = usageData;
+    console.log("ai usage (24h):", JSON.stringify(usageData));
+  }
+
+  return json({ ok: true, purged: data, usage }, 200);
 }
