@@ -93,7 +93,7 @@ the social + parents features, and per-account limits. Add Stripe keys for Pro.
 | `SUPABASE_SERVICE_ROLE_KEY`                                  | server | Rate limits, webhooks, storage, deletion. **Secret.** |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`                | server | Checkout + webhook verification. **Secret.**          |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`                         | public | Stripe publishable key                                |
-| `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_ANNUAL`               | server | Price IDs (£7.99/mo, £59/yr)                          |
+| `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_ANNUAL`               | server | Price IDs (£9.99/mo, £99/yr)                          |
 | `NEXT_PUBLIC_POSTHOG_KEY` / `NEXT_PUBLIC_POSTHOG_HOST`       | public | Analytics (optional; no-op without a key)             |
 | `NEXT_PUBLIC_APP_URL`                                        | public | Base URL for redirects, OG, Stripe                    |
 
@@ -146,7 +146,7 @@ Redirect URLs `http://localhost:3000/**` (add your production domain too).
 
 ## Stripe setup (test mode first)
 
-1. Create two recurring Prices (£7.99/mo, £59/yr) → IDs into `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_ANNUAL`.
+1. Create two recurring Prices (£9.99/mo, £99/yr) → IDs into `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_ANNUAL`.
 2. `STRIPE_SECRET_KEY` from Developers → API keys.
 3. Webhook → endpoint `https://YOUR_URL/api/webhooks/stripe`, events:
    `checkout.session.completed`, `customer.subscription.created/updated/deleted`

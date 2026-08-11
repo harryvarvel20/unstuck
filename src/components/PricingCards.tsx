@@ -115,7 +115,7 @@ export function PricingCards({ signedIn, isPro }: PricingCardsProps) {
           </span>
           <h2 className="text-lg font-semibold text-text">Pro</h2>
           <p className="mt-1 text-3xl font-bold text-text">
-            £7.99
+            £9.99
             <span className="text-base font-normal text-muted">/month</span>
           </p>
           <ul className="mt-4 flex flex-col gap-2.5 text-[0.95rem] text-text">
@@ -136,7 +136,7 @@ export function PricingCards({ signedIn, isPro }: PricingCardsProps) {
             >
               {loading === "annual"
                 ? "Opening checkout…"
-                : "£59/year — over 4 months free"}
+                : "£99/year — 2 months free"}
             </button>
             <button
               type="button"
@@ -144,7 +144,7 @@ export function PricingCards({ signedIn, isPro }: PricingCardsProps) {
               disabled={loading !== null}
               className="w-full rounded-2xl border border-border bg-surface-2 px-5 py-3 font-medium text-text transition-colors hover:border-accent/50 disabled:opacity-60"
             >
-              {loading === "monthly" ? "Opening checkout…" : "£7.99/month"}
+              {loading === "monthly" ? "Opening checkout…" : "£9.99/month"}
             </button>
           </div>
 

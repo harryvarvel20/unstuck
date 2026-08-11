@@ -195,8 +195,8 @@ export default function TermsPage() {
 
         <Section title="10. Pro subscriptions and payment">
           <p>
-            Pro is <strong className="text-text">£7.99 per month</strong> or{" "}
-            <strong className="text-text">£59 per year</strong>. Prices are in
+            Pro is <strong className="text-text">£9.99 per month</strong> or{" "}
+            <strong className="text-text">£99 per year</strong>. Prices are in
             pounds sterling and are the total you pay — we are not currently VAT
             registered, so no VAT is added. Payments are processed by Stripe; we
             never see or store your card details.

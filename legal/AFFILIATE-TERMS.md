@@ -58,7 +58,8 @@ brain". Speak from your own experience, honestly.
 
 ## 4. Your code
 
-- Each Creator gets a unique code; it gives the customer **10% off**.
+- Each Creator gets a unique code; it gives the customer **10% off their first
+  payment**.
 - Don't post the code to coupon-aggregator or deal sites.
 - Don't run paid search ads on "ADHV" or misspellings of it, and don't imply
   you are ADHV or speak on our behalf.
@@ -67,10 +68,24 @@ brain". Speak from your own experience, honestly.
 
 ## 5. Commission and payment
 
-Commission rate, term, and payment schedule are agreed separately in writing
-with each Creator. Payments follow the agreed schedule after any refund or
-chargeback window. No commission is payable on fraudulent, self-referred, or
-incentivised-signup conversions.
+**Standard terms**, unless something different is agreed in writing with a
+Creator before they post:
+
+- **Rate:** 10% of the net subscription revenue actually received from
+  customers who used the Creator's code.
+- **Term:** **12 months** from the customer's first payment. Commission ends
+  after that; the customer relationship does not.
+- **Basis:** paid on revenue received, not on sign-ups. Nothing is payable on a
+  free trial that never converts.
+- **Schedule:** paid monthly in arrears, after any refund or chargeback window
+  has closed.
+- **Not payable** on fraudulent, self-referred, or incentivised-signup
+  conversions, or where the subscription is refunded or charged back.
+
+> A commission with **no end date** is a permanent revenue share rather than a
+> cost of acquisition, and materially changes the economics of every customer
+> from that channel. The 12-month term exists so that is a deliberate choice
+> rather than an omission. See `reports/PRICING-AND-TRIAL-REVIEW.md`.
 
 ## 6. Content, IP and data
 

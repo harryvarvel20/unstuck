@@ -141,9 +141,9 @@ export default function LandingPage() {
           <div className="rounded-3xl border-2 border-accent bg-surface p-6">
             <h3 className="font-semibold text-text">Pro</h3>
             <p className="mt-1 text-2xl font-bold text-text">
-              £7.99<span className="text-base font-normal text-muted">/mo</span>
+              £9.99<span className="text-base font-normal text-muted">/mo</span>
               <span className="ml-2 text-sm font-normal text-muted">
-                or £59/yr
+                or £99/yr
               </span>
             </p>
             <ul className="mt-3 flex flex-col gap-1.5 text-sm text-text">

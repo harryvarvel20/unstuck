@@ -49,9 +49,9 @@ of sandbox (top of the Stripe dashboard) before every step below.
 
 1. **Product catalogue → + Add product**
 2. Name: `ADHV Pro`
-3. Price 1: **Recurring · £7.99 · GBP · Monthly** · _Include tax in price: No_
+3. Price 1: **Recurring · £9.99 · GBP · Monthly** · _Include tax in price: No_
 4. Save, then **+ Add another price**
-5. Price 2: **Recurring · £59 · GBP · Yearly** · _Include tax in price: No_
+5. Price 2: **Recurring · £99 · GBP · Yearly** · _Include tax in price: No_
 6. Copy both **price IDs** (`price_…`) into a scratch note, clearly labelled
    which is monthly and which is annual.
 
@@ -61,12 +61,21 @@ of sandbox (top of the Stripe dashboard) before every step below.
 ### 2b. Discount code
 
 1. **Product catalogue → Coupons → New**
-2. **Percentage discount: 10%**, **Duration: Forever**, name `Creator 10%`
+2. **Percentage discount: 10%**, **Duration: Once**, name `Creator 10%`
 3. On that coupon → **Add promotion code** → enable **customer-facing code** →
    code: `LAUNCH10`
 4. Leave every limit box unticked (no expiry, no redemption cap).
 
 _(For each new influencer later: same coupon, new promotion code.)_
+
+> 🔴 **`Duration: Once`, not `Forever`.** An earlier version of this runbook
+> said Forever. A discount is a conversion instrument — it buys the signup and
+> does nothing in month nine except charge the customer less. At a 14-month
+> average lifetime, Forever costs ~£11.20 per creator customer versus £0.80.
+>
+> **Stripe cannot change a coupon's duration after creation.** If a `Forever`
+> coupon already exists, create a **new** one and issue promotion codes from
+> that — do not try to edit it. See `reports/PRICING-AND-TRIAL-REVIEW.md`.
 
 ### 2c. Webhook
 
@@ -95,14 +104,14 @@ of these five (don't add duplicates):
 | ------------------------------------ | ----------------------------- |
 | `STRIPE_SECRET_KEY`                  | `sk_live_…`                   |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `pk_live_…`                   |
-| `STRIPE_PRICE_MONTHLY`               | the **£7.99/month** `price_…` |
-| `STRIPE_PRICE_ANNUAL`                | the **£59/year** `price_…`    |
+| `STRIPE_PRICE_MONTHLY`               | the **£9.99/month** `price_…` |
+| `STRIPE_PRICE_ANNUAL`                | the **£99/year** `price_…`    |
 | `STRIPE_WEBHOOK_SECRET`              | the new `whsec_…`             |
 
 Then **Deployments → ⋯ → Redeploy** and wait for **Ready**.
 
 > ⚠️ Double-check the two price IDs aren't swapped. If they are, monthly
-> subscribers get charged £59. Open each price in Stripe and match the amount
+> subscribers get charged £99. Open each price in Stripe and match the amount
 > to the ID before pasting.
 
 ---
@@ -117,7 +126,7 @@ different webhook secret, a real card, real 3-D Secure.
 2. Pricing → **Have a discount code?** → `LAUNCH10` → pick **monthly**.
 3. Pay with your **real card**.
 4. Verify all four:
-   - checkout shows **10% off** (£7.99 → £7.19)
+   - checkout shows **10% off** (£9.99 → £8.99)
    - it returns you to the welcome page
    - **Account shows Pro**
    - Stripe → Webhooks → **Event deliveries** shows **200s**

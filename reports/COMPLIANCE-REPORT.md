@@ -65,7 +65,7 @@ wellness. **⚖ quick confirmation recommended pre-marketing.**
 
 | Item | Status |
 |---|---|
-| Transparent pricing incl. VAT position | ✅ flat £7.99/£59 charged exactly (managed_payments off, CI-tested); not VAT-registered → prices as-charged; revisit at threshold 📋 |
+| Transparent pricing incl. VAT position | ✅ flat £9.99/£99 charged exactly (managed_payments off, CI-tested); not VAT-registered → prices as-charged; revisit at threshold 📋 |
 | Pre-contract info + 14-day right | 🔧/⚖ 7-day free trial means no charge before day 7 (cooling-off exercisable in-product by cancelling); Terms should state the digital-content waiver wording — ⚖ |
 | Easy cancellation, no dark patterns | ✅ one-tap via Stripe portal from Account; "cancel in one tap" is marketing copy AND true |
 | Auto-renewal transparency | ✅/⚖ stated at checkout (Stripe) + pricing page; upcoming UK subscription rules (DMCC) reminders — ⚖ watch-item |
