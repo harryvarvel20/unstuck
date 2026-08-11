@@ -995,3 +995,145 @@ npm run build
   real email, submit. The magic link must still arrive. The code-split changes
   *when* the Supabase client loads, so this is worth confirming once by hand —
   a passing build does not prove the auth flow still works.
+
+---
+
+# AA7 — Growth infrastructure
+
+## 1. AA7-D1 — High: no `robots.txt`, no `sitemap.xml`
+
+Both returned **404** in production. For a product days away from marketing,
+that is a straightforward discovery gap:
+
+- Search engines had **no map of the site** at all.
+- With no `robots.txt`, crawlers default to indexing everything — including
+  the ~16 signed-in routes that 307 to `/login`. Crawl budget spent on
+  redirects, and a real risk of a login page ranking instead of the product.
+
+**Added `src/app/robots.ts` and `src/app/sitemap.ts`** (Next.js App Router
+conventions — statically generated, zero runtime cost).
+
+### The trap in this change, and why there is a test for it
+
+The obvious `robots.ts` disallows `/api/` wholesale. **That would have broken
+every social share preview.**
+
+The share cards — `/api/og`, `/api/icon`, `/api/wins-card` — live under
+`/api/`. Twitterbot and several other social crawlers **respect `robots.txt`
+when fetching `og:image`**. A blanket disallow would have stopped link
+previews rendering on Twitter, WhatsApp and Discord: the exact viral loop AA2
+§5 identifies as the growth mechanism.
+
+Nothing would have errored. Shares would simply have stopped showing an image,
+and nobody would have connected that to a `robots.txt` edit weeks earlier.
+
+The file therefore carries three explicit `allow` entries that beat the
+general disallow by longest-match, and
+`src/lib/__tests__/robots-sitemap.test.ts` fails loudly if any of them is ever
+removed. **This is the kind of change that only bites months later, which is
+precisely why it needs a test rather than a comment.**
+
+Other decisions:
+
+- `sitemap.xml` lists **only routes verified to return 200 anonymously**: `/`,
+  `/app`, `/toolkit`, `/pricing`, `/guidelines`, `/accessibility`, `/privacy`,
+  `/terms`. A sitemap containing redirects or 404s devalues the whole file.
+- `/app` **is** listed. It works without an account, so it is a genuine entry
+  point, not a gated page.
+- `/login` is **not** listed — no search value, and it would compete with the
+  landing page on brand queries.
+- `/welcome` is excluded and disallowed: transactional, and it carries a
+  checkout session id.
+- Non-production deployments disallow everything, reinforcing the AA1
+  `X-Robots-Tag: noindex` header. A preview URL entering an index is painful
+  to reverse, so it is worth defending twice.
+
+9 tests added (**257 total**).
+
+## 2. Audit passed: the sharing surface works
+
+`GET /api/og` → **200**, `Content-Type: image/png`,
+`Cache-Control: public, immutable, max-age=31536000`. Full Open Graph and
+Twitter card metadata present and pointing at the production domain. The
+viral loop is intact — it just needed protecting from the robots.txt change
+above.
+
+## 3. Analytics: the honest position
+
+**PostHog remains inert and I am not switching it on.** This is not an
+oversight, so it is worth setting out the reasoning.
+
+Enabling it is not a config change. Under **PECR** (the UK's cookie rules,
+which sit alongside UK GDPR), analytics storage is **not** "strictly
+necessary", so it requires **opt-in consent before it fires** — not a banner
+that assumes consent, and not legitimate interests. Doing it properly means:
+
+1. a consent UI,
+2. persisting the choice,
+3. initialising PostHog **only after** consent,
+4. honouring withdrawal,
+5. adding PostHog to `legal/ROPA.md` and the Privacy Policy as a processor,
+   and accepting their DPA.
+
+There is also a product cost that is specific to this app: **a consent banner
+is friction on first load, for an audience whose defining difficulty is
+starting things.** ADHV's landing page exists to get someone from "I can't
+start" to a first step in seconds. A modal asking about cookies is precisely
+the wrong first interaction.
+
+**Recommendation:** treat analytics as a deliberate product decision, not an
+infrastructure switch. If measurement is needed at launch, a **cookieless,
+consent-exempt** approach (aggregate, no per-user identifiers, no persistent
+storage) gets most of the value without a banner. That is a design
+conversation worth having properly rather than a toggle to flip during an
+infrastructure phase.
+
+**Nothing was changed. Every `capture()` call remains a no-op.**
+
+## 4. Kill switch: you already have one
+
+AA2 raised feature flags and kill switches, and AA1 costed Vercel's **Flags
+Explorer at $250/mo** (rejected) with Edge Config as the cheap alternative.
+
+**Neither is needed.** The Vercel **Firewall** already provides an instant
+kill switch: a custom rule denying `/api/breakdown` (or any path) takes effect
+**without a redeploy** and can be reverted just as fast. If Gemini costs spike
+or the model starts misbehaving at 2am, the response is a dashboard rule, not
+a deployment.
+
+Building an Edge Config flag layer would add a lookup to every AI request to
+duplicate a capability already paid for. Recorded here so it is a considered
+decision rather than an omission.
+
+## 5. Referral mechanics: already built
+
+The influencer growth path exists and needs no infrastructure work: Stripe
+**promotion codes** (one per creator, 10% off, validated server-side in
+`/api/checkout`), with `legal/AFFILIATE-TERMS.md` covering the commercial
+relationship. Adding a creator is a Stripe dashboard action.
+
+## 6. Cost position
+
+**Recommended AA7 spend: £0.** Flags Explorer rejected ($250/mo — the
+firewall already does the job). PostHog deferred on legal and product grounds,
+not cost.
+
+## 7. How to test AA7
+
+```bash
+npx vitest run src/lib/__tests__/robots-sitemap.test.ts   # expect 9 passed
+```
+
+After deploy:
+
+```bash
+curl -s https://adhvtool.com/robots.txt     # expect Allow: /api/og ...
+curl -s https://adhvtool.com/sitemap.xml    # expect 8 <url> entries
+```
+
+- **The check that actually matters:** paste an ADHV link into WhatsApp or
+  Discord and confirm the preview card still renders an image. That proves the
+  `/api/og` allow is doing its job, and it is not something a unit test can
+  demonstrate.
+- Google Search Console: submit `https://adhvtool.com/sitemap.xml` once the
+  domain is verified.
