@@ -2,8 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createSupabaseBrowser } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
+
+// NOTE: `@/lib/supabase/client` is imported dynamically inside onSubmit, not
+// here. A static import pulls the whole Supabase browser client into this
+// page's initial bundle — which measured at 66.5 kB, making /login 172 kB
+// first-load and the heaviest page in the app by 40 kB. It is also the first
+// page a new user ever loads. The client is only needed once they actually
+// submit the form, by which point they have already typed an email address
+// and a chunk fetch is invisible next to the auth round trip.
 
 type State = "idle" | "sending" | "sent" | "error";
 
@@ -25,31 +32,43 @@ export default function LoginPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const supabase = createSupabaseBrowser();
-    if (!supabase) {
-      setState("error");
-      setErrorMsg("Sign-in isn't set up yet. Add Supabase keys to enable it.");
-      return;
-    }
     if (!email.trim()) return;
 
     setState("sending");
     setErrorMsg(null);
 
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(
-      next,
-    )}`;
+    try {
+      // Code-split: see the note by the imports.
+      const { createSupabaseBrowser } = await import("@/lib/supabase/client");
+      const supabase = createSupabaseBrowser();
+      if (!supabase) {
+        setState("error");
+        setErrorMsg(
+          "Sign-in isn't set up yet. Add Supabase keys to enable it.",
+        );
+        return;
+      }
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: { emailRedirectTo: redirectTo },
-    });
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+        next,
+      )}`;
 
-    if (error) {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: { emailRedirectTo: redirectTo },
+      });
+
+      if (error) {
+        setState("error");
+        setErrorMsg("Something went wrong sending the link. Try again?");
+      } else {
+        setState("sent");
+      }
+    } catch {
+      // The chunk fetch itself can fail (offline, or a deploy mid-session).
+      // Without this the form would sit on "sending" forever.
       setState("error");
       setErrorMsg("Something went wrong sending the link. Try again?");
-    } else {
-      setState("sent");
     }
   }
 

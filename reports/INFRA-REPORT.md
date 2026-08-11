@@ -879,3 +879,119 @@ The meaningful test is the failure case, and it cannot be safely simulated in
 production. It is covered by unit test instead: when the database check fails
 the endpoint must return **503**, and the error text must not appear in the
 body.
+
+---
+
+# AA6 — Performance & caching
+
+Measured from a real production build, not estimated.
+
+## 1. AA6-D1 — Medium: `/login` was the heaviest page in the app
+
+| | Before | After |
+| --- | --- | --- |
+| Page JS | 66.5 kB | **2.32 kB** |
+| First Load JS | 172 kB | **108 kB** |
+
+`/login` was **40 kB heavier than any other page** — heavier than `/parents`
+(130 kB), which contains an entire feature suite. It is also the first page a
+new user ever loads, and the one standing between them and an account.
+
+**Cause:** `import { createSupabaseBrowser } from "@/lib/supabase/client"` at
+module scope. The function is only *called* inside `onSubmit`, but a static
+import bundles the whole Supabase browser client into the initial payload
+regardless. 66.5 kB of JavaScript downloaded, parsed and executed by every
+visitor, to support an action most of them take once.
+
+**Fix:** moved to a dynamic `await import(...)` inside `onSubmit`. The client
+now loads only when the form is actually submitted — by which point the user
+has typed an email address, and a chunk fetch is invisible next to the auth
+round trip that follows it.
+
+Two details worth noting:
+
+- The email check moved **above** the import, so an empty submission no longer
+  triggers a network fetch at all.
+- A `try/catch` was added around the whole block. A dynamic import can fail
+  (offline, or a deploy landing mid-session); without it the form would sit on
+  "Sending…" forever with no way out. This is the failure mode dynamic imports
+  usually introduce and it is worth pre-empting rather than discovering.
+
+`/login` is now in line with every other page in the app.
+
+## 2. Audits passed — no action needed
+
+**Fonts: correct.** `layout.tsx` uses `next/font/google` for Fraunces and
+Inter, which **self-hosts at build time** rather than requesting from Google's
+CDN at runtime. Three consequences, all good: no third-party request on page
+load (so no `font-src` CSP exception needed, and none is present), no
+layout shift from late font swap, and no data sent to Google on every visit —
+which also keeps a processor off the ROPA.
+
+**Static asset caching: correct.** Verified live:
+
+```
+GET /_next/static/chunks/webpack-*.js
+Cache-Control: public, max-age=31536000, immutable
+```
+
+One year, immutable — the correct answer for content-hashed build output.
+Nothing to tune.
+
+**Shared bundle: healthy.** 103 kB First Load JS shared across all routes, of
+which 54.2 kB is the React runtime. That is a normal, unremarkable figure for
+a Next.js 15 app and not worth chasing.
+
+**Service worker: sound.** Cache-first for immutable build assets,
+network-first for navigations with a cached fallback, network-only for
+`/api/` and `/auth/` — correctly never serving stale API data (re-confirmed
+from AA1).
+
+## 3. Observations recorded, deliberately not changed
+
+**Middleware is 90.5 kB and runs on every request.** It is the Supabase SSR
+client, and it is there to call `getUser()`, which *validates* the JWT against
+the auth server. The cheaper `getSession()` only reads the cookie and trusts
+it. Trimming this would mean weakening authentication to save a cold start —
+a bad trade, and precisely the kind of "optimisation" that becomes a security
+incident. **Left alone deliberately.** Now that functions run in `lhr1`
+alongside the database (AA3), the call it makes is a local hop rather than a
+transatlantic one, which is where the real cost was.
+
+**Most pages are `force-dynamic`.** Static: `/`, `/login`, `/privacy`,
+`/terms`, `/guidelines`, `/accessibility`, `/_not-found`. Everything else
+renders per request. Some — `/toolkit` and `/pricing` — plausibly could be
+static with client-side personalisation, which would cut a function invocation
+per visit.
+
+**Not changed**, for two reasons: the saving is negligible at current traffic,
+and changing a page's rendering mode risks silently breaking the personalised
+elements (plan badges, signed-in state) in ways a build cannot catch and I
+cannot verify without a browser. That is the same class of blind spot that
+produced the modal bug. Worth revisiting in a session where the UI can be
+checked directly.
+
+## 4. Cost position
+
+**Recommended AA6 spend: £0** — for now.
+
+**Speed Insights ($10/mo per project)** is the one paid item genuinely worth
+considering here, because Core Web Vitals from real users cannot be inferred
+from a build report or synthetic test. My recommendation is unchanged from
+AA1: **not yet**. There is no traffic to measure. Revisit once marketing
+starts and the numbers would actually inform a decision — the `/login` fix
+above was found from a free build report, which is where the obvious wins are
+at this stage.
+
+## 5. How to test AA6
+
+```bash
+npm run build
+```
+
+- `/login` must report roughly **2.3 kB / 108 kB**, not 66.5 kB / 172 kB. If it
+  regresses, something has re-imported the Supabase client at module scope.
+- **Behavioural check that matters:** on production, load `/login`, enter a
+  real email, submit. The magic link must still arrive. The code-split changes
+  *when* the Supabase client loads, so this is worth confirming once by hand —
+  a passing build does not prove the auth flow still works.
