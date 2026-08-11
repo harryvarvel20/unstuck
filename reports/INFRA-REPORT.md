@@ -586,3 +586,150 @@ only via the header dropdown.
 Mode has no signpost to it in the tab bar. That is deliberate, but it is worth
 asking whether the pinnacle feature of the product should be that quiet. Logged
 for a product session, not changed inside an infrastructure merge.
+
+---
+
+# AA4 — Cron jobs
+
+Capabilities verified against live Vercel documentation, 11 Aug 2026.
+
+## 1. The finding this workstream actually produced
+
+AA4 was scoped as "cron jobs". The question worth asking first was not _what
+should we schedule_ but _what have we already promised that nothing performs_.
+
+**AA4-D1 — Critical (compliance).** The Privacy Policy tells users "anonymous
+usage counters roll off after 30 days" and that moderation reports are kept
+"for up to 12 months". `legal/RETENTION-AND-BREACH.md` went further and stated
+those buckets "roll off **automatically**".
+
+**None of it was implemented.** Across 23 migrations there was no scheduled
+job, no TTL, no trigger and no delete path. `anon_usage`, `usage_log`,
+`feature_usage`, `reports` and `handle_reservations` accumulated indefinitely.
+`anon_usage` rows are keyed on a **salted hash of an IP address**, so the
+longest-lived of these was also the most sensitive.
+
+Two distinct problems:
+
+1. **Storage limitation** — Art. 5(1)(e) UK GDPR requires personal data be
+   kept no longer than necessary. Indefinite retention of pseudonymous IP
+   hashes is not defensible when the stated need is a 24-hour rate limit.
+2. **Transparency** — Art. 13. A published privacy notice described deletion
+   behaviour the system did not perform. The ICO treats an inaccurate notice as
+   a compliance failure in its own right, independent of the underlying
+   retention. This was, in my view, the more serious half.
+
+This was found **before launch and before any real user data existed**, which
+is the best possible time to find it.
+
+## 2. Verified Vercel cron capabilities
+
+| | Cron jobs per project | Minimum interval | Precision |
+| --- | --- | --- | --- |
+| Hobby | 100 | Once per **day** | ±59 min |
+| **Pro** | **100** | **Once per minute** | **Per-minute** |
+| Enterprise | 100 | Once per minute | Per-minute |
+
+- **Cost:** cron jobs are included on all plans. They invoke a normal Vercel
+  Function, so the only charge is that invocation. **One daily job is
+  effectively free** and needs no AA8 provision.
+- Vercel sends a **GET** to the production deployment; preview and development
+  deployments are never invoked.
+- Requests carry `vercel-cron/1.0` as user agent and an
+  `x-vercel-cron-schedule` header.
+- **Delivery is best effort.** Runs can be missed *and* can double-fire, so the
+  work must be idempotent.
+- **Cron jobs do not follow redirects** — a 3xx ends the invocation silently.
+- Vercel **does not retry** a failed invocation.
+- Instant Rollback does **not** revert cron configuration.
+
+## 3. The fix
+
+**`supabase/migrations/0024_retention_purge.sql`** — a `purge_expired_data()`
+function, `SECURITY DEFINER` with a pinned `search_path`, `EXECUTE` revoked
+from `public`/`anon`/`authenticated` and granted only to `service_role`:
+
+| Table | Rule |
+| --- | --- |
+| `anon_usage` | `usage_date` older than 30 days |
+| `usage_log` | `usage_date` older than 30 days |
+| `feature_usage` | `usage_date` older than 30 days |
+| `reports` | `status = 'reviewed'` and older than 12 months |
+| `handle_reservations` | `reserved_until` in the past |
+
+It returns a JSON row-count summary. Four supporting indexes were added,
+because each purge filters on a column that is not the leading column of its
+table's primary key and would otherwise sequential-scan.
+
+**Open moderation reports are deliberately never deleted on a timer.** An
+unresolved report is outstanding safeguarding work; expiring it automatically
+would be the wrong trade against the OSA duties documented in
+`legal/OSA-ILLEGAL-CONTENT-RISK-ASSESSMENT.md`. Instead the function *counts*
+open reports older than 12 months and returns that figure, so a moderation
+backlog surfaces in the logs rather than being silently aged out.
+
+**`src/app/api/cron/purge/route.ts`** — verifies
+`Authorization: Bearer $CRON_SECRET` and **fails closed**: if `CRON_SECRET` is
+unset it returns 401 rather than treating `undefined === undefined` as a pass.
+Capped at `maxDuration = 60`. Logs its row counts, which is the evidence that
+the retention promise is being kept.
+
+**`vercel.json`** — `"crons": [{ "path": "/api/cron/purge", "schedule": "0 3 * * *" }]`.
+Daily at 03:00 UTC. Idempotent by construction, so the double-fire and
+missed-run cases the docs warn about are both safe.
+
+**Tests — 7 new (243 total).** Four cover authorisation alone, including the
+fail-closed case, because this endpoint deletes data and its auth *is* its
+security model.
+
+**Documents corrected.** `legal/RETENTION-AND-BREACH.md` now describes the real
+mechanism and carries an explicit **correction of record** stating that the
+previous "roll off automatically" claim was untrue and when it was fixed. That
+is deliberate: a controller who can show they found and remedied a gap is in a
+far better position than one whose documents were quietly edited.
+
+## 4. ⚠️ Two manual steps — the fix is INERT without both
+
+Deploying the code alone does nothing. Both of these are required:
+
+1. **Apply migration `0024_retention_purge.sql`** in Supabase → SQL Editor.
+2. **Add `CRON_SECRET`** in Vercel → Settings → Environment Variables
+   (Production), a random string of 16+ characters, then redeploy.
+
+Until both are done the job runs and returns 401 or 500 — it fails safely and
+deletes nothing, but the retention gap remains open.
+
+## 5. Interaction with the firewall (AA2)
+
+The live rule matches `/api/breakdown`, `/api/navigate` and `/api/pick`, so it
+does not touch `/api/cron/purge`. **But AA2 §4's proposed B2 rule — "everything
+else under `/api/`" — would.** If B2 is ever enabled, `/api/cron/` must be
+added to the bypass list in AA2 §5 alongside the Stripe webhook, or the
+retention job will be throttled by our own WAF.
+
+## 6. Deliberately not scheduled
+
+Nothing else in this app needs a cron:
+
+- **Daily quotas** reset by date arithmetic (`usage_date = current_date`), not
+  by a job.
+- **Trial expiry and subscription state** are driven by Stripe webhooks.
+- **No digests or reminder emails exist**, and adding scheduled email would be
+  a product and PECR-consent decision, not an infrastructure one.
+
+## 7. How to test AA4
+
+```bash
+npx vitest run src/lib/__tests__/cron-purge.route.test.ts   # expect 7 passed
+```
+
+- **Auth, against production** (after `CRON_SECRET` is set):
+  `curl -i https://adhvtool.com/api/cron/purge` → **401**. Anything else is a
+  serious defect — report it immediately.
+- **Authorised run:**
+  `curl -H "Authorization: Bearer $CRON_SECRET" https://adhvtool.com/api/cron/purge`
+  → 200 with a row-count summary.
+- **Idempotency:** run it twice. The second run must return 200 with zeroes,
+  not an error.
+- **Scheduling:** Vercel → Settings → **Cron Jobs** → the job should be listed;
+  **View Logs** after 03:00 UTC shows the invocation and its counts.
