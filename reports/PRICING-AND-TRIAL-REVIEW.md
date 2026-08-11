@@ -6,28 +6,29 @@ Commercial analysis, not financial advice.
 
 ---
 
-## 0. What I need you to confirm
+## 0. Correction to the working figure: it is £6.16, not £6.49
 
-You said you net **~£6.49 per customer per month** after marketing. That figure
-is consistent with two different structures, and they behave very differently:
+**Confirmed structure:** list £7.99 → customer pays 10% less → creator takes
+10% of the resulting revenue.
 
-| Reading | Composition | Implication |
-| --- | --- | --- |
-| **(a)** Full price | £7.99 − £0.32 Stripe − **£1.18 marketing** = £6.49 | Marketing is ~15.4% of gross |
-| **(b)** Creator-code price | £7.19 − £0.31 Stripe − **£0.39 commission** = £6.49 | The 10% code is doing most of the work |
+£7.99 × 0.9 × 0.9 = £6.47, which is where the ~£6.49 came from. **That
+calculation omits Stripe.**
 
-**Which is it?** And more importantly: is that marketing cost a **one-off**
-cost of acquiring the customer, or a **recurring** monthly payment (a creator
-commission that keeps paying out)?
+| | Amount |
+| --- | --- |
+| List price | £7.99 |
+| Customer pays (−10%) | **£7.19** |
+| Creator commission (10% of £7.19) | −£0.72 |
+| Stripe (1.5% + 20p on £7.19) | −£0.31 |
+| **Actual net** | **£6.16** |
 
-- **One-off** → it is CAC. It stops. Every month after the first is worth
-  £7.67, and the analysis is about payback period.
-- **Recurring** → it is a permanent revenue share, and £6.49 is your true
-  ceiling forever.
+That is **33p per customer per month** below the working figure — 4.2% of
+revenue, or **£330/month at 1,000 subscribers**. Every model below uses
+**£6.16**.
 
-Everything below uses **£6.49 as the recurring net**, which is the
-conservative reading. Tell me if it is one-off and I will redo the LTV maths —
-it materially improves the picture.
+**You keep 77% of list price on a creator-acquired customer.** That is not
+unreasonable for an affiliate channel, but it means the list price has to carry
+a ~23% load, and right now it does not.
 
 ---
 
@@ -184,6 +185,74 @@ exactly the failure mode AA4 found in the retention schedule.
 
 ---
 
+## 5b. Is the creator structure valid? Yes — but the list price is not carrying it
+
+The 10% + 10% structure is sound in principle. One point of design worth
+stating, because it should guide any future change:
+
+> **Prefer commission over discount.** Commission is performance-based — it
+> only pays when a sale happens. A discount is unconditional and permanent.
+> If you ever need to motivate creators harder, raise the commission, not the
+> customer discount.
+
+The problem is not the split. It is that **£7.99 was set as if every customer
+were organic**, and then a 23% channel load was placed on top of it without
+adjusting the list.
+
+### What the same structure yields at different list prices
+
+Assumes 10% customer discount, 10% creator commission on the discounted price,
+Stripe at 1.5% + 20p.
+
+| List | Customer pays | Creator | Stripe | **Net (creator channel)** | **Net (organic)** |
+| --- | --- | --- | --- | --- | --- |
+| **£7.99** | £7.19 | £0.72 | £0.31 | **£6.16** | £7.67 |
+| £8.99 | £8.09 | £0.81 | £0.32 | £6.96 | £8.65 |
+| **£9.99** | £8.99 | £0.90 | £0.33 | **£7.76** | £9.64 |
+| £10.99 | £9.89 | £0.99 | £0.35 | £8.55 | £10.63 |
+
+**At £9.99, a creator-acquired customer nets £7.76 — more than an organic
+customer currently nets at £7.99.** The channel stops being a tax.
+
+### Market position
+
+| App | Monthly | ≈ GBP |
+| --- | --- | --- |
+| Tiimo | $7.99 | ~£6.30 |
+| **ADHV (current)** | **£7.99** | **~$10.15** |
+| **ADHV (proposed)** | **£9.99** | **~$12.70** |
+| Numo | ~$16 | ~£12.60 |
+| Inflow (incl. coaching) | $47.99 | ~£37.80 |
+
+ADHV at £7.99 already sits above Tiimo. At £9.99 it would sit **below Numo and
+far below Inflow**, for a product carrying an AI Navigator, Parents Mode, the
+Activity Center, focus sessions and a crisis-safety layer. There is room.
+
+### The argument that matters most
+
+**You get one chance to set a launch price.** Raising £7.99 → £9.99 in six
+months means either grandfathering your earliest and most loyal cohort at a
+permanently lower rate, or asking the people who backed you first to pay more.
+Both are bad. Launching at £9.99 and running promotions *down* is easy;
+pricing up later is not.
+
+At a 90% contribution margin you have unlimited room to discount tactically.
+You have almost none to raise.
+
+### The counter-argument, stated fairly
+
+ADHV is positioned for people "already carrying enough". For part of that
+audience £2/month is not nothing. Choosing accessibility over margin is a
+legitimate values decision and it is yours to make — but it should be made
+deliberately, not inherited from a number picked before the creator channel
+existed.
+
+**Recommendation: launch at £9.99/month and £99/year**, with the duration
+fixes in §2. If accessibility is the priority, £8.99 still recovers most of
+the channel load.
+
+---
+
 ## 6. Is £7.99 the right price?
 
 **Cost is not the constraint.** At a 90% contribution margin, your AI cost is
@@ -195,39 +264,75 @@ consequence worth being explicit about:
 > if it reduces conversion by more than ~20%. Nothing in your cost structure
 > argues for £7.99 over £9.99 — only your belief about willingness to pay.
 
-Two things genuinely argue for staying at £7.99 for now:
+**Revised recommendation — this section originally said "keep £7.99".** That
+was written before the creator structure was confirmed as 10% discount **plus**
+10% commission. A 23% channel load changes the answer: £7.99 was chosen as if
+every customer were organic, and it cannot carry that load.
 
-1. **You have no conversion data.** Optimising price before you know your
-   baseline is guessing. Launch, measure, then test.
-2. **Positioning.** ADHV is deliberately for people "already carrying enough".
-   A lower price is coherent with that, and there is a real argument for
-   accessibility over margin in this category. That is a values call and it is
-   legitimately yours.
-
-**My recommendation: keep £7.99, fix the three structural leaks above.** They
-are worth more than a price rise and cost you no conversion risk whatsoever:
+**Recommendation: launch at £9.99/month, £99/year.**
 
 | Change | Effect |
 | --- | --- |
+| **£7.99 → £9.99** | **+£1.60/month per creator customer, +£1.97 organic** |
 | Coupon `Forever` → `Once` | ~£10.40 recovered per creator customer |
-| Annual £59 → £79 | +£1.64/month per annual subscriber |
+| Annual £59 → £99 | +£3.28/month per annual subscriber |
 | Fair-use cap at 100/day | Removes an unbounded £1,486/month tail risk |
 
-Revisit price after roughly 100 paying customers, when a change is measurable
-rather than a guess.
+The one genuine argument for staying at £7.99 is **positioning** — accessibility
+for an audience already under strain. That is a values call and it is yours. If
+you take it, £8.99 is the compromise: it recovers most of the channel load and
+still undercuts every AI-assisted competitor in the category.
+
+What is *not* a good reason to stay at £7.99 is "we can raise it later". You
+realistically cannot, without grandfathering your first cohort permanently or
+charging your earliest supporters more than they signed up for.
 
 ---
 
 ## 7. Actions, in order
 
-1. **Stripe coupon → `Duration: Once` (or Repeating 3 months).** Before you
-   issue a single creator code. **Cannot be changed later.**
-2. **Google Cloud billing budget + alert** at £25 and £50/month. The hard stop
-   behind everything above.
-3. **Decide the annual price** — £79 recommended, £59 only if you expect sub-8-
-   month retention.
-4. **Decide the fair-use position** — cap + copy change together, or neither.
-5. **Confirm the £6.49 composition** (§0) so the LTV model can be finished.
+Everything here happens **in Stripe live mode plus five env vars**, and all of
+it must be settled before the first creator code goes out.
 
-Items 1 and 2 are the ones that lose real money if left. Items 3–5 are
-decisions rather than defects.
+1. **Decide the list price.** £9.99 recommended; £8.99 if accessibility wins.
+   Then create the live prices and update `STRIPE_PRICE_MONTHLY` /
+   `STRIPE_PRICE_ANNUAL` in Vercel. Also update the figures in
+   `src/app/terms/page.tsx` §10 and `PricingCards` — the Terms state the price
+   explicitly and must match.
+2. **Stripe coupon → `Duration: Once`** (or Repeating, 3 months). **Coupon
+   duration cannot be edited after creation** — if one already exists with
+   `Forever`, create a new coupon rather than trying to change it, and issue
+   promotion codes from that.
+3. **Define the commission term in writing.** `legal/AFFILIATE-TERMS.md` §5
+   leaves rate and term "agreed separately", which in practice means
+   open-ended. A recurring 10% with no end date is a permanent revenue share.
+   Standard practice is 12 months from signup. Fill this in before signing any
+   creator.
+4. **Set the annual price** — £99 at a £9.99 list (2 months free). £59 is only
+   right if you expect sub-8-month retention.
+5. **Google Cloud billing budget + alert** at £25 and £50/month. The hard stop
+   behind the fair-use question.
+6. **Decide the fair-use position** — cap *and* copy change together, or
+   neither.
+
+Items 2 and 3 lose real money if left, and both become expensive to fix once
+creators are live. Items 1, 4 and 6 are decisions rather than defects.
+
+---
+
+## 8. Summary of the numbers
+
+| | Current | Recommended |
+| --- | --- | --- |
+| List | £7.99 | **£9.99** |
+| Annual | £59 (38.5% off) | **£99** (17% off) |
+| Coupon duration | Forever | **Once** |
+| Commission term | undefined | **12 months** |
+| Net, creator channel | **£6.16** | **£7.76** (£8.64 after month 1) |
+| Net, organic | £7.67 | **£9.64** |
+| AI cost, heavy user | £0.66 | £0.66 |
+| Contribution margin | 89% | **93%** |
+
+Sources for market comparison: [Tiimo pricing](https://lifestack.ai/blog/tiimo-pricing),
+[Numo](https://numo.ai/journal/best-adhd-planner-apps),
+[Inflow cost](https://mutra.app/compare/pricing/inflow/).
