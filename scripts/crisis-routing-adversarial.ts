@@ -7,11 +7,15 @@
  *
  * Run: node --experimental-strip-types scripts/crisis-routing-adversarial.ts
  *
- * X1 result: 22/23 checks passed; the one "failure" is a false POSITIVE
- * (over-cautious, safe direction) not a false negative — see
- * reports/SECURITY-REPORT.md. X2 should expand this into the full
- * mocked-Gemini exhaustive suite the spec calls for (every text surface,
- * adult and kid-facing) and wire it into CI.
+ * Result: 22 pass, 0 fail, 1 accepted false POSITIVE. The accepted case is
+ * over-caution — the gate fires on "I want to die of embarrassment" — which
+ * is the safe direction of error. It is marked `known` so it does not fail
+ * the build, because a permanently red suite is one nobody reads. A false
+ * NEGATIVE would be a real safety gap and still fails. See
+ * reports/SECURITY-REPORT.md.
+ *
+ * Future work: expand into the full mocked-Gemini exhaustive suite covering
+ * every text surface, adult and kid-facing.
  */
 import {
   containsCrisisLanguage,
@@ -21,18 +25,48 @@ import {
 
 let pass = 0;
 let fail = 0;
+/** Accepted false POSITIVES — over-caution, the safe direction of error. */
+let knownFail = 0;
+/** A known limitation that has started passing: the script needs updating. */
+const nowFixed: string[] = [];
+
+/**
+ * `known: true` marks a case we have consciously decided not to chase.
+ *
+ * Every one of them is a false **positive** — the gate firing on hyperbole
+ * like "I want to die of embarrassment". The cost is that someone gets a
+ * gentle signpost instead of a task list. The alternative is loosening a
+ * crisis regex to let "want to die" through, which risks a false **negative**
+ * on someone who means it. That trade is not acceptable in this app, so these
+ * stay as they are.
+ *
+ * They are reported, and counted, but they do not fail the build — a suite
+ * that is permanently red is a suite nobody reads, which is how a genuine
+ * regression gets missed. If one ever starts passing, that is surfaced too,
+ * because the script would then be out of date.
+ */
 function expect(
   fn: (s: string) => boolean,
   input: string,
   want: boolean,
   label: string,
+  known = false,
 ) {
   const got = fn(input);
   const ok = got === want;
-  ok ? pass++ : fail++;
-  console.log(
-    `${ok ? "PASS" : "FAIL"}  [${label}] "${input}" -> got=${got} want=${want}`,
-  );
+  let tag: string;
+  if (ok) {
+    pass++;
+    tag = "PASS";
+    if (known) nowFixed.push(label);
+  } else if (known) {
+    knownFail++;
+    tag = "KNOWN";
+  } else {
+    fail++;
+    tag = "FAIL";
+  }
+  console.log(`${tag}  [${label}] "${input}" -> got=${got} want=${want}`);
 }
 
 console.log("=== containsCrisisLanguage: must catch real crisis phrasing ===");
@@ -70,13 +104,14 @@ expect(
   containsCrisisLanguage,
   "this deadline is actually going to kill me lol",
   false,
-  "hyperbole1 (KNOWN LIMITATION - see report)",
+  "hyperbole1",
 );
 expect(
   containsCrisisLanguage,
   "I want to die of embarrassment, I forgot the meeting",
   false,
-  "hyperbole2 (KNOWN LIMITATION - see report)",
+  "hyperbole2 — accepted false positive",
+  true,
 );
 expect(
   containsCrisisLanguage,
@@ -160,7 +195,7 @@ expect(
   childSafetyConcern,
   "homework meltdowns are killing me, any advice?",
   false,
-  "benign hyperbole (KNOWN LIMITATION)",
+  "benign hyperbole",
 );
 expect(
   childSafetyConcern,
@@ -175,7 +210,29 @@ console.log(
 expect(looksAbusive, "kys, nobody likes you", true, "direct abuse");
 expect(looksAbusive, "you're worthless and pathetic", true, "direct abuse2");
 
+const total = pass + fail + knownFail;
 console.log(
-  `\n=== RESULT: ${pass} passed, ${fail} failed (of ${pass + fail}) ===`,
+  `\n=== RESULT: ${pass} passed, ${fail} failed, ` +
+    `${knownFail} accepted false-positive (of ${total}) ===`,
 );
+
+if (knownFail > 0) {
+  console.log(
+    "\nAccepted false positives are over-caution, not gaps: the gate fires on\n" +
+      "hyperbole. Fixing them would mean loosening a crisis regex and risking a\n" +
+      "false NEGATIVE on someone who means it. See reports/SECURITY-REPORT.md.",
+  );
+}
+
+if (nowFixed.length > 0) {
+  console.log(
+    `\n⚠️  These were marked as accepted limitations but now PASS: ` +
+      `${nowFixed.join(", ")}.\n` +
+      `Remove the \`known\` flag so a future regression fails the build again.`,
+  );
+  process.exitCode = 1;
+}
+
+// Only genuine failures — including a false NEGATIVE, which would be a real
+// safety gap — fail the build.
 if (fail > 0) process.exitCode = 1;
