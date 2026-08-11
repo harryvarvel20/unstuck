@@ -733,3 +733,149 @@ npx vitest run src/lib/__tests__/cron-purge.route.test.ts   # expect 7 passed
   not an error.
 - **Scheduling:** Vercel → Settings → **Cron Jobs** → the job should be listed;
   **View Logs** after 03:00 UTC shows the invocation and its counts.
+
+## 8. Deployed and verified — with live evidence the gap was real
+
+Verified against production on 11 Aug 2026:
+
+| Test | Result |
+| --- | --- |
+| No `Authorization` header | **401** |
+| Wrong secret | **401** |
+| Correct secret without the `Bearer` prefix | **401** |
+| Correct secret | **200** |
+
+The first authorised run returned:
+
+```json
+{ "anon_usage": 4, "feature_usage": 12, "usage_log": 0,
+  "reports_reviewed": 0, "handle_reservations": 0,
+  "reports_open_over_12m": 0 }
+```
+
+**Sixteen rows of genuinely expired data were deleted**, four of them
+`anon_usage` rows — salted IP hashes older than 30 days that the Privacy
+Policy already told users had been removed. AA4-D1 was not a theoretical
+finding; there was real personal data sitting past its stated retention.
+
+A note on the deployment itself: the first attempt **failed the build** because
+the pasted `CRON_SECRET` carried a trailing newline, and Vercel rejects
+whitespace in a value destined for an HTTP header. Worth recording as a
+positive — the platform refused to ship a broken configuration, and a failed
+build never replaces the running deployment, so production was untouched
+throughout.
+
+---
+
+# AA5 — Observability
+
+## 1. Audit: does the ROPA's claim about logs hold?
+
+`legal/ROPA.md` states error logs "contain no PII or content". Given AA4 had
+just disproved a comparable claim, it was worth testing rather than assuming.
+
+**It holds.** Reviewed all 35 `console.*` call sites:
+
+- Every one logs a **fixed string** plus either `error.message` (a Supabase
+  error) or a caught exception. None logs a parsed request body, query, email
+  or user id — verified by pattern search, not by reading alone.
+- The highest-risk site was `console.error("navigate generate failed:", err)`,
+  where `err` comes from the Gemini SDK — if that error carried the request, it
+  would log the user's free-text problem description, which is about as
+  sensitive as this app gets. **It does not.** `@google/genai`'s `ApiError`
+  declares exactly two fields, `message` and `status`. No payload.
+
+**Two narrow residual paths**, recorded for honesty rather than as defects:
+
+1. A Stripe validation error can quote the offending value, so a malformed
+   email could appear in a message at `checkout/route.ts:78`.
+2. A Postgres unique-violation message can include the conflicting key, so a
+   username could surface via `error.message`.
+
+Both are edge cases in error paths, not systematic logging of personal data.
+Vercel log retention is short and the logs are access-controlled. **No change
+made** — the accurate description is "no systematic PII in logs", which is what
+the ROPA already conveys.
+
+## 2. AA5-D1 — High: nothing tells you when the app breaks
+
+This is the finding that matters, and it is an operational one rather than a
+code defect.
+
+**If checkout fails at 02:00, nothing alerts anyone.** You would learn about it
+from a customer email, or not at all. Specifically, today:
+
+| Signal | Status |
+| --- | --- |
+| Uptime monitoring | **none** |
+| Error alerting | **none** — no Sentry or equivalent |
+| Product analytics | **inert** — PostHog has no key (AA1-D2), every `capture()` is a no-op |
+| Vercel Observability | included on Pro, but **pull-only** — it shows you things when you go and look |
+| Stripe webhook failures | Stripe emails after repeated failures — the one alert that does exist |
+| Spend alert | Vercel default, **$200/cycle** |
+
+For a solo operator this is the difference between a ten-minute outage and a
+weekend one. It matters much more once real payments are flowing.
+
+## 3. The fix: `/api/health`
+
+Added `GET /api/health` — a machine-readable liveness check for an external
+monitor.
+
+**Why not just ping `/`:** the marketing page is statically generated and
+served from the CDN. It will happily return 200 long after the database has
+gone away and every signed-in user is broken. `/api/health` deliberately
+exercises the path that actually matters — function → Supabase — using a
+head/count query that reads **no rows and no user content**.
+
+Design decisions worth stating:
+
+- **Returns 503, not 200, when unhealthy.** Uptime monitors alert on status
+  code. A health check that returns 200 with `{"status":"error"}` never pages
+  anybody. There is a test pinning exactly this.
+- **Says as little as possible.** No version, no environment, no error text. It
+  is unauthenticated by necessity — a monitor cannot sign in — so it must not
+  become a reconnaissance endpoint. A test asserts the database error string
+  never reaches the response body.
+- **`no-store`.** A cached 200 during an outage would actively hide it.
+- Capped at `maxDuration = 10`.
+
+5 tests added (**248 total**).
+
+## 4. Cost position
+
+**Recommended spend for AA5: £0.**
+
+| Option | Cost | Verdict |
+| --- | --- | --- |
+| External uptime monitor (Better Stack / UptimeRobot free tier) | **free** | **Yes** — 5-minute checks on `/api/health` with email/SMS alerts |
+| Vercel Observability (base) | included | Yes, already on |
+| Stripe webhook failure emails | free | Yes — confirm they are enabled |
+| Vercel spend alert | free | Yes — lower it from the $200 default |
+| Observability Plus | $1.20/1M events | **No** — revisit near 10k MAU |
+| Speed Insights | $10/mo | **Defer to AA6**, where it is actually needed |
+| Sentry or similar | free tier exists | **Not yet.** Adds a processor to the ROPA and a DPA to accept, for value the health check plus Vercel logs already largely provide at this scale |
+
+## 5. Dashboard actions for you
+
+1. **Set up free uptime monitoring.** Better Stack or UptimeRobot → monitor
+   `https://adhvtool.com/api/health` every 5 minutes → alert to your email and
+   phone. This is the single highest-value item in AA5 and takes five minutes.
+2. **Lower the Vercel spend alert** from $200 to something that would actually
+   surprise you — $40–50 given a ~$20 baseline.
+3. **Stripe → Developers → Webhooks** → confirm failure notifications are
+   enabled and pointed at an inbox you read.
+4. **PostHog remains inert.** That is an AA7 decision (it needs a key *and*
+   PECR consent gating first), not something to switch on casually.
+
+## 6. How to test AA5
+
+```bash
+npx vitest run src/lib/__tests__/health.route.test.ts   # expect 5 passed
+curl -i https://adhvtool.com/api/health                 # expect 200 + {"status":"ok","db":true}
+```
+
+The meaningful test is the failure case, and it cannot be safely simulated in
+production. It is covered by unit test instead: when the database check fails
+the endpoint must return **503**, and the error text must not appear in the
+body.
