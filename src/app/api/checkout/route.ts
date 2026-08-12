@@ -119,8 +119,12 @@ export async function POST(req: NextRequest): Promise<Response> {
   // Stripe "Managed Payments" (merchant-of-record + automatic tax) is on by
   // default for new accounts. It adds VAT on top of our price plus a 3.5%
   // per-transaction fee, and rejects checkout unless every product carries a
-  // tax code. We advertise a flat, all-in £7.99/£59, so disable it and charge
-  // exactly that. The param is newer than the pinned SDK types, hence the cast.
+  // tax code. The dashboard will show a VAT line on the price because of it.
+  //
+  // We advertise a flat, all-in £9.99/£99 and are NOT VAT registered, so
+  // charging VAT would both contradict Terms §10 and collect tax we have no
+  // entitlement to. Disabled per session so we charge exactly the advertised
+  // amount. The param is newer than the pinned SDK types, hence the cast.
   (params as { managed_payments?: { enabled: boolean } }).managed_payments = {
     enabled: false,
   };
