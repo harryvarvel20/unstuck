@@ -1411,17 +1411,25 @@ Stated plainly, because an unverified claim is worse than a known gap:
 Deployed, verified, safe. Nine workstreams complete, defects found and fixed,
 CI green, the crisis invariant proven in production.
 
-### Taking money: **NO-GO** — three gates
+### Taking money: **GO** — all three gates closed 12 Aug 2026
 
-1. **🔴 Stripe live cutover is incomplete.** Blocked on 2FA (support ticket
-   open). No live keys, no live prices, no verified payment.
-2. **🔴 Price mismatch.** The site advertises **£9.99/£99**; Stripe still holds
-   **£7.99/£59** sandbox prices. Nobody can be wrongly charged today because
-   sandbox takes no real money — but going live without reconciling these would
-   charge a price the site does not advertise.
-3. **🔴 The real payment test has not run.** Test mode passing does not prove
-   live mode works: different keys, different webhook secret, a real card, real
-   3-D Secure.
+1. **✅ Stripe live cutover complete.** 2FA resolved via support. Live product
+   `prod_V3mOFs7ul4wl8Z` with two prices, coupon at `Duration: Once`, webhook
+   active on four events, all five env vars swapped (Production only).
+2. **✅ Prices reconciled.** Live prices `price_1U3eq8…` (£9.99/mo) and
+   `price_1U3ezg…` (£99/yr) match the site, Terms §10 and `PricingCards`.
+   The sandbox `price_1U0nHk…`/`price_1U0nHi…` were test-mode all along and
+   can never charge a real card.
+3. **✅ Real payment test passed.** Verified end to end with real money —
+   including the **trial-to-paid transition**, which was forced rather than
+   waited for. Pro access survived it, which is the path that runs once per
+   customer and cannot otherwise be tested without risking a live one.
+
+**Two questions settled against live data rather than by inspection:** the
+subscription row showed **Managed Payments: Disabled** (so no 3.5% fee) and
+**Tax calculation: None** (so no VAT on a non-registered business, keeping
+Terms §10 accurate). Trial read "ends 19 Aug" — exactly 7 days, confirming the
+code-level trial did not stack with a product-level one.
 
 ### One open question that could be a compliance gate
 
@@ -1432,9 +1440,30 @@ free tier, that statement is untrue and must be fixed **before** launch, not
 after. This is a five-minute check at `aistudio.google.com` and it outranks
 every other outstanding item except Stripe.
 
-### Recommendation
+### Remaining gates before advertising
 
-Do not announce or send creator codes until gates 1–3 close and the Gemini tier
-is confirmed. Everything else outstanding — uptime monitoring, billing alerts,
-preview protection, branch protection — is hardening that improves the odds but
-does not gate a launch.
+Stripe is closed. Three things still are not, and two of them are new:
+
+1. **🔴 Supabase is on the Free plan, which includes NO automatic backups.**
+   Verified against Supabase's pricing documentation: daily backups start on
+   Pro; Free has none, and Free projects also **pause after 1 week of
+   inactivity**. If the database is lost there is no restore — every account,
+   task and post, gone. That is also a UK GDPR Art. 32(1)(c) problem ("ability
+   to restore the availability and access to personal data"), and
+   `legal/RETENTION-AND-BREACH.md` implies backups exist. **Supabase Pro
+   ($25/mo) is a launch requirement, not an add-on.** Fixed costs become ~£36/mo
+   — six subscribers.
+2. **🔴 Gemini tier unconfirmed.** On the free tier Google may train on
+   submitted data, while the Privacy Policy and Terms §6 both state content is
+   never used to train AI models. Five-minute check; it outranks everything
+   else here because it concerns the most sensitive thing users type.
+3. **🟠 Processor DPAs** (Supabase, Vercel, Google, Stripe, Resend) — Art. 28
+   requires a written contract with each processor. Mostly click-through.
+
+Everything else outstanding — uptime monitoring, billing alerts, preview
+protection, branch protection, Dependabot — is hardening that improves the odds
+but does not gate a launch.
+
+**Revised recommendation:** the app can take money today. Do not drive traffic
+at it until items 1 and 2 are resolved, and do not send a creator code until
+the coupon and signed creator terms are both in place.

@@ -116,21 +116,44 @@ Then **Deployments → ⋯ → Redeploy** and wait for **Ready**.
 
 ---
 
-## Phase 4 — The real payment test 🔴 **non-negotiable**
+## Phase 4 — The real payment test ✅ **PASSED 12 Aug 2026**
 
 Test mode passing does **not** prove live mode works: different keys,
 different webhook secret, a real card, real 3-D Secure.
 
-1. On `adhvtool.com`, sign in with a **fresh email** you control (not your
-   existing Pro account — that one is already Pro and will 409).
-2. Pricing → **Have a discount code?** → `LAUNCH10` → pick **monthly**.
-3. Pay with your **real card**.
-4. Verify all four:
-   - checkout shows **10% off** (£9.99 → £8.99)
-   - it returns you to the welcome page
+> ⚠️ **The trial means checkout charges £0.** An earlier version of this
+> section said "pay with your real card, then refund the payment". That was
+> wrong. `subscription_data.trial_period_days = 7` means Stripe saves the
+> card, creates the subscription as `trialing`, and takes **nothing** today.
+> There is no payment to refund, and signing up alone does **not** prove a
+> charge succeeds.
+
+1. Sign in with a **fresh email** you control (not an existing Pro account —
+   it will 409).
+2. Pricing → optionally apply a discount code → pick **monthly**.
+3. At Stripe's checkout, before paying, confirm: **7 days free**, **£0.00 due
+   today**, and **no VAT/tax line**.
+4. Complete checkout, then verify:
+   - returns to the welcome page
    - **Account shows Pro**
    - Stripe → Webhooks → **Event deliveries** shows **200s**
-5. Then in Stripe: **refund** the payment and **cancel** that subscription.
+5. **Force the charge.** Stripe → Subscriptions → **All** (a trialing sub is
+   not "Active" and the default filter hides it) → open it → **⋯ → Update
+   subscription** → end the trial now. Stripe invoices and charges
+   immediately.
+6. Verify the four that matter:
+   - Stripe → Payments → a **succeeded** charge
+   - subscription flips **Trialing → Active**
+   - webhook shows `customer.subscription.updated` → **200**
+   - **Account STILL shows Pro** ← the whole point. This is the trial-to-paid
+     transition, it runs once per customer seven days after signup, and this
+     is the only way to test it without risking it on a real customer.
+7. Then **refund** the charge and **cancel** the subscription (immediately,
+   not at period end).
+
+**Result, 12 Aug 2026:** all passed. The subscription row also confirmed
+**Managed Payments: Disabled** and **Tax calculation: None**, settling the VAT
+question against live data rather than by inspection.
 
 If any step fails, stop and fix before telling anyone the app is live.
 
