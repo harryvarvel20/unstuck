@@ -137,7 +137,7 @@ export default async function AccountPage() {
             <div>
               <p className="text-sm text-muted">
                 Pro is an AI body double, a plan that knows how you really use
-                time, and a reset button for bad days. 7-day free trial.
+                time, and a reset button for bad days. 4-day free trial.
               </p>
               <Link
                 href="/pricing"

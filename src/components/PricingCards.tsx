@@ -111,7 +111,7 @@ export function PricingCards({ signedIn, isPro }: PricingCardsProps) {
         {/* Pro */}
         <div className="relative flex flex-col rounded-3xl border-2 border-accent bg-surface p-6">
           <span className="absolute -top-3 right-5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-ink">
-            7-day free trial
+            4-day free trial
           </span>
           <h2 className="text-lg font-semibold text-text">Pro</h2>
           <p className="mt-1 text-3xl font-bold text-text">
@@ -186,7 +186,7 @@ export function PricingCards({ signedIn, isPro }: PricingCardsProps) {
           )}
 
           <p className="mt-3 text-center text-xs text-muted">
-            Free for 7 days, cancel in one tap. We&apos;d rather you leave happy
+            Free for 4 days, cancel in one tap. We&apos;d rather you leave happy
             than stay trapped.
           </p>
         </div>

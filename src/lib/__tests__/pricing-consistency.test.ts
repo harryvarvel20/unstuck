@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { PRO_FAIR_USE } from "@/lib/quota";
+import { TRIAL_DAYS } from "@/lib/stripe";
 
 /**
  * The price is stated in three separate user-facing places: the landing page,
@@ -94,6 +95,47 @@ describe("pricing is consistent across every user-facing surface", () => {
     // ~20/day is the heaviest plausible genuine user. A ceiling that drifted
     // down toward that would start clipping paying customers.
     expect(PRO_FAIR_USE.breakdownPerDay).toBeGreaterThanOrEqual(40);
+  });
+
+  it("every stated trial length matches TRIAL_DAYS", () => {
+    // The trial is advertised in ~13 places — the landing page, PricingCards,
+    // a paywall CTA on nine tool pages, and Terms §10 and §12. Terms §12 ties
+    // the consumer cooling-off position to "no charge before the trial ends",
+    // so a stale number there is a legal statement that no longer matches the
+    // system. Scanning the whole tree means a new surface can't be missed.
+    const offenders: string[] = [];
+
+    function walk(dir: string) {
+      for (const entry of readdirSync(dir)) {
+        const full = join(dir, entry);
+        if (statSync(full).isDirectory()) {
+          if (entry === "__tests__") continue;
+          walk(full);
+          continue;
+        }
+        if (!/\.tsx?$/.test(entry)) continue;
+
+        const src = readFileSync(full, "utf8");
+        const patterns = [/(\d+)-day free trial/g, /Free for (\d+) days/g];
+        for (const re of patterns) {
+          for (const m of src.matchAll(re)) {
+            if (Number(m[1]) !== TRIAL_DAYS) {
+              offenders.push(
+                `${full.slice(process.cwd().length + 1).replace(/\\/g, "/")}: "${m[0]}"`,
+              );
+            }
+          }
+        }
+      }
+    }
+
+    walk(join(process.cwd(), "src"));
+
+    expect(
+      offenders,
+      `TRIAL_DAYS is ${TRIAL_DAYS} but these say otherwise:\n  ` +
+        offenders.join("\n  "),
+    ).toEqual([]);
   });
 
   it("the annual saving claim is arithmetically true", () => {

@@ -66,7 +66,7 @@ wellness. **⚖ quick confirmation recommended pre-marketing.**
 | Item | Status |
 |---|---|
 | Transparent pricing incl. VAT position | ✅ flat £9.99/£99 charged exactly (managed_payments off, CI-tested); not VAT-registered → prices as-charged; revisit at threshold 📋 |
-| Pre-contract info + 14-day right | 🔧/⚖ 7-day free trial means no charge before day 7 (cooling-off exercisable in-product by cancelling); Terms should state the digital-content waiver wording — ⚖ |
+| Pre-contract info + 14-day right | 🔧/⚖ 4-day free trial means no charge before day 4 (cooling-off exercisable in-product by cancelling); Terms should state the digital-content waiver wording — ⚖. **Note:** the trial has always been shorter than the 14-day statutory cancellation period (7 days before 12 Aug 2026, 4 days after), so a customer can be charged while still inside it, and cancelling refunds nothing automatically. Not introduced by the change to 4 days — but the shorter trial brings the first charge forward, which makes it more likely to be encountered. Worth the solicitor's attention alongside the waiver wording |
 | Easy cancellation, no dark patterns | ✅ one-tap via Stripe portal from Account; "cancel in one tap" is marketing copy AND true |
 | Auto-renewal transparency | ✅/⚖ stated at checkout (Stripe) + pricing page; upcoming UK subscription rules (DMCC) reminders — ⚖ watch-item |
 

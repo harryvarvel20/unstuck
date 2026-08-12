@@ -67,6 +67,8 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/supabaseServer", () => ({ getServiceClient: () => null }));
 
 import { POST } from "@/app/api/checkout/route";
+// The mock above spreads the real module, so this is the genuine value.
+import { TRIAL_DAYS } from "@/lib/stripe";
 
 function req(body: unknown): NextRequest {
   return new NextRequest("http://test.local/api/checkout", {
@@ -98,7 +100,8 @@ describe("/api/checkout — session creation", () => {
     expect(p.discounts).toBeUndefined();
     expect(p.mode).toBe("subscription");
     expect(p.line_items).toEqual([{ price: "price_m_test", quantity: 1 }]);
-    expect(p.subscription_data?.trial_period_days).toBe(7);
+    expect(p.subscription_data?.trial_period_days).toBe(TRIAL_DAYS);
+    expect(TRIAL_DAYS).toBe(4);
   });
 
   it("Managed Payments is disabled on EVERY session (advertised price only)", async () => {

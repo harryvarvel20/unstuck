@@ -211,7 +211,7 @@ export default function TermsPage() {
           </p>
           <p className="mt-2">
             New subscriptions include a{" "}
-            <strong className="text-text">7-day free trial</strong>. You will
+            <strong className="text-text">4-day free trial</strong>. You will
             not be charged during the trial. Unless you cancel before it ends,
             the subscription starts automatically and your card is charged, then{" "}
             <strong className="text-text">renews automatically</strong> each
@@ -235,7 +235,7 @@ export default function TermsPage() {
             content. Because Pro gives you immediate access to digital content,
             by starting your subscription you ask us to begin supplying it right
             away and acknowledge that you lose the automatic 14-day right to
-            cancel once supply has begun. In practice the 7-day free trial means
+            cancel once supply has begun. In practice the 4-day free trial means
             you can try Pro fully without being charged, and if you are charged
             and are unhappy, contact us — we would rather refund you than have
             you feel trapped.

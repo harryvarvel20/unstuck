@@ -24,4 +24,14 @@ export const PRICES = {
   annual: () => process.env.STRIPE_PRICE_ANNUAL,
 } as const;
 
-export const TRIAL_DAYS = 7;
+/**
+ * Free-trial length, applied per Checkout Session (never on the Stripe price —
+ * setting it in both places stacks them and doubles the trial).
+ *
+ * ⚠️ Changing this number means changing the copy too. It is stated on the
+ * landing page, PricingCards, every paywall prompt, and — critically —
+ * **Terms §10 and §12**, where §12 ties the consumer cooling-off position to
+ * "no charge before the trial ends". `pricing-consistency.test.ts` fails if
+ * the code and the copy disagree.
+ */
+export const TRIAL_DAYS = 4;

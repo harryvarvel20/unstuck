@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /**
  * The cross-platform app shell navigation.
  * - Mobile (<md): bottom tab bar. Desktop (md+): a persistent left nav rail.
- * Destinations: Home / Toolkit / Activity / [Parents] / Account. The Parents
- * tab appears only when Parents Mode is enabled (fetched once; refreshed on
- * the adhv-parents-changed event the ParentsScreen dispatches).
+ * Destinations: Home / Toolkit / Activity / Parents / Account.
+ *
+ * Parents is ALWAYS shown. It previously appeared only once a signed-in user
+ * had switched Parents Mode on, which meant the feature was invisible to
+ * everyone who had not already found it — a discoverability trap for what is
+ * meant to be a headline feature. Showing it unconditionally also removes a
+ * `fetch("/api/parents")` that ran on every page load purely to decide
+ * whether to render one tab.
  *
  * Hidden on marketing/auth/focus surfaces — the app shell is for the app.
  */
@@ -89,37 +93,13 @@ const HIDDEN_PREFIXES = ["/privacy", "/terms", "/login", "/auth", "/welcome"];
 
 export function AppNav() {
   const pathname = usePathname() ?? "/";
-  const [parentsEnabled, setParentsEnabled] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function check() {
-      try {
-        const res = await fetch("/api/parents");
-        if (!res.ok) return;
-        const body = (await res.json()) as { enabled?: boolean };
-        if (!cancelled) setParentsEnabled(Boolean(body.enabled));
-      } catch {
-        /* not signed in / offline — no tab */
-      }
-    }
-    void check();
-    window.addEventListener("adhv-parents-changed", check);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("adhv-parents-changed", check);
-    };
-  }, []);
 
   if (pathname === "/" || HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) {
     return null;
   }
 
-  // Parents slots in just before Account when enabled.
-  const destinations = parentsEnabled
-    ? [...DESTINATIONS.slice(0, 3), PARENTS, DESTINATIONS[3]!]
-    : [...DESTINATIONS];
-  const cols = destinations.length; // 4 or 5
+  // Parents slots in just before Account. Always present — see the note above.
+  const destinations = [...DESTINATIONS.slice(0, 3), PARENTS, DESTINATIONS[3]!];
 
   const items = destinations.map((d) => {
     const active = d.match(pathname);
@@ -158,11 +138,10 @@ export function AppNav() {
         aria-label="Main"
         className="glass fixed inset-x-0 bottom-0 z-40 border-t border-border/70 pb-[env(safe-area-inset-bottom)] md:hidden"
       >
-        <div
-          className={`grid h-16 ${cols === 5 ? "grid-cols-5" : "grid-cols-4"}`}
-        >
-          {items}
-        </div>
+        {/* Five fixed destinations. Written out in full rather than
+            interpolated — Tailwind only generates classes it can see as
+            literal strings at build time. */}
+        <div className="grid h-16 grid-cols-5">{items}</div>
       </nav>
 
       {/* Desktop: left nav rail */}

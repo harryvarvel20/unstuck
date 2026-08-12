@@ -55,8 +55,8 @@ of sandbox (top of the Stripe dashboard) before every step below.
 6. Copy both **price IDs** (`price_…`) into a scratch note, clearly labelled
    which is monthly and which is annual.
 
-> ⚠️ **Do not add a trial on the price** — the app adds the 7-day trial in
-> code. Setting it here too would double it.
+> ⚠️ **Do not add a trial on the price** — the app adds the trial in code
+> (`TRIAL_DAYS`, currently **4 days**). Setting it here too would double it.
 
 ### 2b. Discount code
 
@@ -123,15 +123,15 @@ different webhook secret, a real card, real 3-D Secure.
 
 > ⚠️ **The trial means checkout charges £0.** An earlier version of this
 > section said "pay with your real card, then refund the payment". That was
-> wrong. `subscription_data.trial_period_days = 7` means Stripe saves the
-> card, creates the subscription as `trialing`, and takes **nothing** today.
-> There is no payment to refund, and signing up alone does **not** prove a
-> charge succeeds.
+> wrong. `subscription_data.trial_period_days = TRIAL_DAYS` means Stripe saves
+> the card, creates the subscription as `trialing`, and takes **nothing**
+> today. There is no payment to refund, and signing up alone does **not** prove
+> a charge succeeds.
 
 1. Sign in with a **fresh email** you control (not an existing Pro account —
    it will 409).
 2. Pricing → optionally apply a discount code → pick **monthly**.
-3. At Stripe's checkout, before paying, confirm: **7 days free**, **£0.00 due
+3. At Stripe's checkout, before paying, confirm: **4 days free**, **£0.00 due
    today**, and **no VAT/tax line**.
 4. Complete checkout, then verify:
    - returns to the welcome page
@@ -146,8 +146,8 @@ different webhook secret, a real card, real 3-D Secure.
    - subscription flips **Trialing → Active**
    - webhook shows `customer.subscription.updated` → **200**
    - **Account STILL shows Pro** ← the whole point. This is the trial-to-paid
-     transition, it runs once per customer seven days after signup, and this
-     is the only way to test it without risking it on a real customer.
+     transition, it runs once per customer when the trial ends, and this is
+     the only way to test it without risking it on a real customer.
 7. Then **refund** the charge and **cancel** the subscription (immediately,
    not at period end).
 

@@ -47,7 +47,7 @@
    step is the likely remedy; the hook for it exists at signup. _(DPIA risk R9,
    the single open Medium risk.)_
 2. **Consumer Contracts Regulations wording.** The Terms use the standard
-   digital-content immediate-supply waiver alongside a 7-day free trial. The
+   digital-content immediate-supply waiver alongside a 4-day free trial. The
    drafting is conventional but should be confirmed.
 3. **OSA proportionality.** Our conclusion is that the systems are
    proportionate for a small, paid, adults-only service with no stranger
