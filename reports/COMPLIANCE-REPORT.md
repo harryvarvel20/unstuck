@@ -106,6 +106,36 @@ zero analytics events (Z3-D2) and no third-party calls.
 (commercial use permitted); all imagery is emoji/system. 📋⚖ **Trademark
 search for "ADHV"** before heavy marketing spend — a solicitor/agent task.
 
+## 🔴 Gemini API tier — verify before launch
+
+**Added 13 Aug 2026.** Verified against Google's Gemini API Additional Terms
+of Service, not assumed.
+
+| | **Free tier** | **Paid tier** |
+| --- | --- | --- |
+| Training | "Google uses the content you submit to the Services and any generated responses to provide, improve, and develop Google products and services" | "Google doesn't use your prompts… or responses to improve our products" |
+| **Human review** | **"human reviewers may read, annotate, and process your API input and output"** | not applicable |
+| Retention | unspecified | limited period, solely to detect Prohibited Use Policy violations |
+
+**The Privacy Policy already commits us to the paid tier.** It states plainly
+that user text "is not used to train Google's models **under the paid API
+terms**". If the key is on the free tier, that sentence is untrue.
+
+**The human-review clause is the more serious half**, and it is not disclosed
+anywhere in the Privacy Policy. On the free tier, Google reviewers may read
+what users type — task descriptions, journal entries, Regulate spirals, brain
+dumps, and text from someone approaching crisis. That is an undisclosed
+processing activity covering the most sensitive content in the product, in an
+app whose stated position is "we collect as little as we can".
+
+**Action:** confirm the API key's Google Cloud project has billing enabled and
+is on the paid tier. If it is not, **enabling it is mandatory before launch** —
+the only alternative is amending the Privacy Policy to disclose that Google
+staff may read user entries, which would be honest and commercially fatal.
+
+**Cost impact: none material.** AA8 modelled paid-tier pricing throughout
+(~£0.66/month for a heavy user). The economics already assume it.
+
 ## Launch-blocking shortlist (my honest ranking)
 
 1. ~~**ICO registration**~~ — ✅ **complete** (ZC213841, 4 Aug 2026). Renew by
