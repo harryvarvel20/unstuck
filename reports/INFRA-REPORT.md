@@ -1453,10 +1453,24 @@ Stripe is closed. Three things still are not, and two of them are new:
    with 7-day retention. PITR remains a paid add-on (~$100/mo) and is **not**
    needed at this scale. Fixed costs are now ~£36/month — six subscribers.
 
-   **Still to confirm in the dashboard:** that backups are actually listed and
-   a restore has a documented path. A plan upgrade is not the same as a working
-   backup, and this project has already produced one case (Gemini) where the
-   billing state said "paid" while the service was dead.
+   **Verified in the dashboard, 13 Aug 2026:** five restore points listed
+   (13, 12, 11, 08 and 06 Aug), each marked `PHYSICAL` with a self-serve
+   **Restore** button. Daily, around midnight in the project's region. So this
+   is a working backup, not merely a billing change — a distinction this
+   project has already been caught by once, when Gemini's console said "paid"
+   while the service was dead.
+
+   **⚠️ One real gap found while verifying: Supabase Storage is NOT backed
+   up.** Supabase states that database backups "do not include objects stored
+   via the Storage API". ADHV keeps social photos and task photos there. A lost
+   or deleted object is unrecoverable, and a database restore would reinstate
+   rows pointing at objects that no longer exist — broken references rather
+   than missing ones, which is harder to diagnose.
+
+   **Accepted for now** (no material upload volume, images secondary to the
+   product, users can re-upload) and **recorded in
+   `legal/RETENTION-AND-BREACH.md`** so the restore claim is not overstated.
+   Remedy if photo use grows: a periodic bucket export.
 2. **🔴 Gemini tier unconfirmed.** On the free tier Google may train on
    submitted data, while the Privacy Policy and Terms §6 both state content is
    never used to train AI models. Five-minute check; it outranks everything

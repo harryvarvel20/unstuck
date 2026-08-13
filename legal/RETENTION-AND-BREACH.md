@@ -32,6 +32,38 @@ delete of the auth user; every table cascades from it. There is no soft-delete
 and no archive copy. Backups held by processors follow their own rotation and
 expire naturally; no restore is performed to recover deleted user data.
 
+## Backup and restore capability (Art. 32(1)(c))
+
+**Database — covered.** Supabase **Pro** since 13 Aug 2026: automatic daily
+backups taken around midnight in the project's region (`eu-west-2`, London),
+**7-day retention**, restorable self-serve from the dashboard. Verified on
+13 Aug — five restore points were listed, the oldest 6 Aug.
+
+> **Prior state, recorded deliberately.** Until 13 Aug 2026 the project was on
+> the **Free** plan, which includes **no automatic backups** and pauses after a
+> week of inactivity. For that period there was no restore path for any user
+> data. No data was lost, and the service had no live users, but the gap was
+> real and is recorded rather than quietly closed.
+
+**⚠️ Storage objects — NOT covered.** Supabase states plainly that database
+backups "do not include objects stored via the Storage API". ADHV keeps
+**social photos** (posts, DMs, challenges) and **task photos** there.
+
+Consequences, stated so nobody assumes otherwise:
+
+- A deleted or lost storage object **cannot be recovered from any backup**.
+- Restoring a database backup would reinstate rows referencing objects that no
+  longer exist, producing broken references rather than absent ones.
+
+**Position:** accepted for now. Images are secondary to the core product, the
+service has no material volume of uploads, and users can re-upload. **This is a
+conscious risk acceptance, not an oversight.** Revisit if photo use becomes
+significant — the remedy is a periodic export of the storage bucket, which is
+straightforward but currently disproportionate.
+
+**Point-in-Time Recovery** is available as a paid add-on (~$100/mo). Not taken:
+daily backups with 7-day retention are proportionate at this scale.
+
 ## How the time-based rows are actually deleted
 
 A daily job runs at **03:00 UTC** (Vercel Cron → `GET /api/cron/purge`,
