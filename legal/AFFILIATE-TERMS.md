@@ -1,8 +1,9 @@
 # ADHV — Creator & Affiliate Partnership Terms
 
-**Version:** 1.0 · **Date:** 31 July 2026 · Self-completed; not legal advice.
+**Version:** 1.1 · **Date:** 13 August 2026 · Self-completed; not legal advice.
 Send this to every creator **before** they post, and keep their written
 acceptance (an email reply saying "I agree" is enough to evidence it).
+Record each one in `legal/CREATOR-REGISTER.md`.
 
 ---
 
@@ -52,6 +53,28 @@ that ADHV:
 You must not present personal results as typical, disparage competitors
 unfairly, or target your promotion at under-18s. ADHV is an 18+ service.
 
+### Vulnerable audiences and crisis content
+
+This matters more here than in most partnerships, and it is not boilerplate.
+
+- **Never position ADHV as help in a crisis.** Do not pair it with content
+  about suicidal feelings, self-harm, or being in danger. ADHV has crisis
+  signposting built in precisely because it is **not** a crisis service, and
+  suggesting otherwise could put someone off seeking real help at the moment
+  they most need it.
+- **Do not imply it replaces support someone already has** — a GP, a
+  therapist, a diagnosis pathway, medication.
+- **If your audience is mostly under 18**, tell us before you post. ADHV is
+  18+, and a promotion landing on a mainly teenage audience is a problem for
+  both of us regardless of how it is worded. We would rather find another way
+  to work together than have you post it.
+- **Parents Mode is for the parent, not the child.** If you mention it, do not
+  present it as an app for children to use alone, and do not show a child
+  using it.
+
+If in doubt about a piece of content, send it to us before posting. We will
+answer quickly and we would far rather review something than take it down.
+
 **Do say things like:** "an app that breaks tasks into tiny steps and sits
 with you while you do them", "it helps me start", "this is what works for my
 brain". Speak from your own experience, honestly.
@@ -86,6 +109,23 @@ Creator before they post:
 > cost of acquisition, and materially changes the economics of every customer
 > from that channel. The 12-month term exists so that is a deliberate choice
 > rather than an omission. See `reports/PRICING-AND-TRIAL-REVIEW.md`.
+
+### How you actually get paid
+
+- **You invoice us.** You are an independent contractor, not an employee. Send
+  an invoice with your name/business name, address, the period covered, the
+  amount, and your bank details. We will send you a statement of qualifying
+  revenue each month so the figure is easy to check.
+- **Minimum payout: £25.** Balances below that roll over to the next month
+  rather than being paid — a £1.80 bank transfer costs both of us more in
+  admin than it is worth. Any balance is paid in full when the arrangement
+  ends, regardless of the threshold.
+- **Payment within 30 days** of a correct invoice.
+- **VAT:** if you are VAT-registered, add VAT and show your VAT number. ADHV is
+  **not** currently VAT-registered.
+- **Tax is yours.** Commission is paid gross. You are responsible for declaring
+  it and for your own income tax and National Insurance. We do not operate PAYE
+  and this arrangement does not make you an employee or worker.
 
 ## 6. Content, IP and data
 
