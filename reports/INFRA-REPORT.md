@@ -1444,15 +1444,19 @@ every other outstanding item except Stripe.
 
 Stripe is closed. Three things still are not, and two of them are new:
 
-1. **🔴 Supabase is on the Free plan, which includes NO automatic backups.**
-   Verified against Supabase's pricing documentation: daily backups start on
-   Pro; Free has none, and Free projects also **pause after 1 week of
-   inactivity**. If the database is lost there is no restore — every account,
-   task and post, gone. That is also a UK GDPR Art. 32(1)(c) problem ("ability
-   to restore the availability and access to personal data"), and
-   `legal/RETENTION-AND-BREACH.md` implies backups exist. **Supabase Pro
-   ($25/mo) is a launch requirement, not an add-on.** Fixed costs become ~£36/mo
-   — six subscribers.
+1. **✅ RESOLVED 13 Aug 2026 — Supabase upgraded to Pro.** The Free plan
+   includes **no automatic backups at all** (verified against Supabase's
+   pricing docs — daily backups start at Pro) and Free projects **pause after
+   1 week of inactivity**. While on Free there was no restore path for any user
+   data: an Art. 32(1)(c) gap ("ability to restore the availability and access
+   to personal data") as much as an operational one. Pro provides daily backups
+   with 7-day retention. PITR remains a paid add-on (~$100/mo) and is **not**
+   needed at this scale. Fixed costs are now ~£36/month — six subscribers.
+
+   **Still to confirm in the dashboard:** that backups are actually listed and
+   a restore has a documented path. A plan upgrade is not the same as a working
+   backup, and this project has already produced one case (Gemini) where the
+   billing state said "paid" while the service was dead.
 2. **🔴 Gemini tier unconfirmed.** On the free tier Google may train on
    submitted data, while the Privacy Policy and Terms §6 both state content is
    never used to train AI models. Five-minute check; it outranks everything

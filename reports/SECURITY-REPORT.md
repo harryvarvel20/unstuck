@@ -120,8 +120,19 @@ purchase completed 28 Jul (checkout → webhook → Pro grant).
 
 1. **GitHub repo settings:** private ✓ (verify), enable 2FA, branch
    protection on the production branch, Dependabot alerts/updates.
-2. **Supabase dashboard:** confirm daily backups are on (free tier: 7-day
-   PITR is not included — consider Pro before scale); note the restore steps.
+2. **Supabase dashboard:** confirm daily backups are listed and note the
+   restore steps.
+
+   > **Correction (13 Aug 2026).** This item previously read "confirm daily
+   > backups are on (free tier: 7-day PITR is not included)", which implied
+   > the Free plan had daily backups and merely lacked point-in-time recovery.
+   > **It had neither** — verified against Supabase's pricing documentation,
+   > the Free plan includes **no automatic backups at all**, and Free projects
+   > also pause after a week of inactivity. For the period the project was on
+   > Free there was no restore path for any user data, which was an Art.
+   > 32(1)(c) gap as much as an operational one. **Resolved: upgraded to Pro
+   > (daily backups, 7-day retention) on 13 Aug 2026.** PITR remains a paid
+   > add-on (~$100/mo) and is **not** needed at this scale.
 3. **Vercel:** keep "source maps in production" off (default), confirm env
    vars are scoped to Production/Preview only (they are, from setup).
 
