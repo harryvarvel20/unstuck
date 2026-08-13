@@ -136,6 +136,39 @@ staff may read user entries, which would be honest and commercially fatal.
 **Cost impact: none material.** AA8 modelled paid-tier pricing throughout
 (~£0.66/month for a heavy user). The economics already assume it.
 
+### ✅ RESOLVED 13 Aug 2026
+
+Project `adhd` (`gen-lang-client-0645970025`) moved to **Tier 1 paid**, and a
+real Gemini call verified against production. The Privacy Policy statement is
+now accurate: no training on submissions, no human review.
+
+**Two things this exposed, both worth keeping:**
+
+**1. The dashboard lied for an hour.** Linking billing flipped the tier label to
+"Paid" while the service stayed completely dead — Gemini API billing is
+**Prepay**, and a £0 credit balance means an effective quota of zero. Every AI
+call returned **429**. Verifying with an actual generation, rather than trusting
+the console, is what caught it. Had we not, launch would have gone ahead with
+the core feature broken.
+
+**2. Prepay is one-directional.** Per Google's billing docs, "switching from a
+Prepay billing plan to a Postpay billing plan is not supported". New accounts
+default to Prepay, so pay-as-you-go is not available here. **Auto-reload is
+therefore load-bearing**, not a convenience: without it the balance drains, the
+API 429s, and — because of AA5-D5 — `/api/breakdown` answers **200 with an empty
+body**. Users would see a spinner and nothing else, `/api/health` would keep
+returning 200 because the database is fine, and no alert would fire.
+
+Configured: £20 credit, auto-reload below £8, **£50/month charge cap**. The cap
+is itself a circuit breaker — if it trips, service stops rather than billing
+without limit, which is the right failure but makes the £25/£50 budget alert
+necessary rather than optional.
+
+**Follow-up raised by this incident:** AA5-D5 (silent empty 200 on upstream
+failure) was rated Low because it could not be browser-tested. Watching it
+conceal a total outage of the core feature changes that assessment — it should
+be fixed before launch.
+
 ## Launch-blocking shortlist (my honest ranking)
 
 1. ~~**ICO registration**~~ — ✅ **complete** (ZC213841, 4 Aug 2026). Renew by
