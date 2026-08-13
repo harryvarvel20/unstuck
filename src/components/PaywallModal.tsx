@@ -73,7 +73,7 @@ export function PaywallModal({
             href="/pricing"
             className="w-full rounded-2xl bg-accent px-5 py-3 text-center font-semibold text-accent-ink transition-all hover:brightness-105"
           >
-            See Pro — 4-day free trial
+            See Pro — 5-day free trial
           </Link>
           <button
             ref={closeRef}

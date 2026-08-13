@@ -117,13 +117,14 @@ be pre-launch when you have no churn data.
 
 ---
 
-> **Decision, 12 Aug 2026: the trial was shortened to 4 days.** The analysis
-> below recommended keeping 7 and still stands on the economics — a genuine
-> trial costs about 3p, so cost was never the reason to shorten it. The owner's
-> call was made on urgency and perceived value, which are legitimate grounds
-> this analysis did not weigh. Recorded rather than rewritten, so the reasoning
-> on both sides survives: if conversion disappoints after launch, trial length
-> is the first variable to test, and §4 explains why.
+> **Decision: the trial is 5 days** (7 → 4 on 12 Aug 2026, settled at 5 on
+> 13 Aug). The analysis below recommended keeping 7 and still stands on the
+> economics — a genuine trial costs about 3p, so cost was never the reason to
+> shorten it. The owner's call was made on urgency and perceived value, which
+> are legitimate grounds this analysis did not weigh. Recorded rather than
+> rewritten, so the reasoning on both sides survives: if conversion disappoints
+> after launch, trial length is the first variable to test, and §4 explains
+> why.
 
 ## 4. 🟢 Finding 3: the free trial is **not** your problem
 

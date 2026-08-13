@@ -34,4 +34,4 @@ export const PRICES = {
  * "no charge before the trial ends". `pricing-consistency.test.ts` fails if
  * the code and the copy disagree.
  */
-export const TRIAL_DAYS = 4;
+export const TRIAL_DAYS = 5;

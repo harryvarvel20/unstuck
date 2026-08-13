@@ -49,7 +49,7 @@ export default async function PlanPage() {
                 href="/pricing"
                 className="mt-5 inline-block rounded-2xl bg-accent px-5 py-3 font-semibold text-accent-ink transition-colors hover:brightness-105"
               >
-                See Pro — 4-day free trial
+                See Pro — 5-day free trial
               </Link>
               <p className="mt-4 text-sm text-muted">
                 Meanwhile, the{" "}

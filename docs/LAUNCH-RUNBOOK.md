@@ -56,7 +56,7 @@ of sandbox (top of the Stripe dashboard) before every step below.
    which is monthly and which is annual.
 
 > ⚠️ **Do not add a trial on the price** — the app adds the trial in code
-> (`TRIAL_DAYS`, currently **4 days**). Setting it here too would double it.
+> (`TRIAL_DAYS`, currently **5 days**). Setting it here too would double it.
 
 ### 2b. Discount code
 
@@ -131,7 +131,7 @@ different webhook secret, a real card, real 3-D Secure.
 1. Sign in with a **fresh email** you control (not an existing Pro account —
    it will 409).
 2. Pricing → optionally apply a discount code → pick **monthly**.
-3. At Stripe's checkout, before paying, confirm: **4 days free**, **£0.00 due
+3. At Stripe's checkout, before paying, confirm: **5 days free**, **£0.00 due
    today**, and **no VAT/tax line**.
 4. Complete checkout, then verify:
    - returns to the welcome page

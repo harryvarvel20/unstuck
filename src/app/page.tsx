@@ -157,7 +157,7 @@ export default function LandingPage() {
               href="/pricing"
               className="mt-4 inline-block rounded-2xl bg-accent px-5 py-2.5 font-semibold text-accent-ink transition-colors hover:brightness-105"
             >
-              See Pro — 4-day free trial
+              See Pro — 5-day free trial
             </Link>
           </div>
         </div>

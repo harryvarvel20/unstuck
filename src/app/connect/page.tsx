@@ -69,7 +69,7 @@ export default async function ConnectPage() {
                 href="/pricing"
                 className="grad-primary mt-5 inline-block rounded-2xl px-5 py-3 font-semibold shadow-soft"
               >
-                See Pro — 4-day free trial
+                See Pro — 5-day free trial
               </Link>
             </div>
           )}

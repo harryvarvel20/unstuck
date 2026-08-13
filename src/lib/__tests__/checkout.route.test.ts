@@ -101,7 +101,7 @@ describe("/api/checkout — session creation", () => {
     expect(p.mode).toBe("subscription");
     expect(p.line_items).toEqual([{ price: "price_m_test", quantity: 1 }]);
     expect(p.subscription_data?.trial_period_days).toBe(TRIAL_DAYS);
-    expect(TRIAL_DAYS).toBe(4);
+    expect(TRIAL_DAYS).toBe(5);
   });
 
   it("Managed Payments is disabled on EVERY session (advertised price only)", async () => {

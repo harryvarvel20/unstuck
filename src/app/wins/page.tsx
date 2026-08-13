@@ -47,7 +47,7 @@ export default async function WinsPage() {
               href="/pricing"
               className="mt-5 inline-block rounded-2xl bg-accent px-5 py-3 font-semibold text-accent-ink transition-colors hover:brightness-105"
             >
-              See Pro — 4-day free trial
+              See Pro — 5-day free trial
             </Link>
           </div>
         ) : wins && wins.hasAnything ? (
