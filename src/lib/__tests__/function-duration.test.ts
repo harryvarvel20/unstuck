@@ -31,6 +31,15 @@ const GEMINI_MARKERS = [
 const AI_MIN_SECONDS = 30;
 const AI_MAX_SECONDS = 60;
 
+/**
+ * Liveness probes touch Gemini too, but the rule above is wrong for them.
+ * A probe must fail **fast** — an uptime monitor times out in seconds, so a
+ * health check allowed to hang for 60s is useless to the thing consuming it.
+ * They are still required to declare a bound; it is simply an upper one.
+ */
+const PROBE_ROUTES = new Set(["src/app/api/health/ai/route.ts"]);
+const PROBE_MAX_SECONDS = 30;
+
 /** Vercel Pro's generally-available ceiling (800s); nothing here should approach it. */
 const PLATFORM_MAX_SECONDS = 800;
 
@@ -79,6 +88,17 @@ describe("Vercel function duration is bounded", () => {
           `stalled upstream call could hold a function instance for five ` +
           `minutes. Add \`export const maxDuration = ${AI_MAX_SECONDS};\`.`,
       ).not.toBeNull();
+
+      if (PROBE_ROUTES.has(name)) {
+        // Fail fast, not generously — see PROBE_ROUTES.
+        expect(
+          secs,
+          `${name} is a liveness probe: it must be bounded ABOVE, not below. ` +
+            `A monitor times out in seconds.`,
+        ).toBeLessThanOrEqual(PROBE_MAX_SECONDS);
+        return;
+      }
+
       expect(secs).toBeGreaterThanOrEqual(AI_MIN_SECONDS);
       expect(secs).toBeLessThanOrEqual(AI_MAX_SECONDS);
     });

@@ -858,9 +858,22 @@ Design decisions worth stating:
 
 ## 5. Dashboard actions for you
 
-1. **Set up free uptime monitoring.** Better Stack or UptimeRobot → monitor
-   `https://adhvtool.com/api/health` every 5 minutes → alert to your email and
-   phone. This is the single highest-value item in AA5 and takes five minutes.
+1. **Set up free uptime monitoring — two monitors, not one.** Better Stack or
+   UptimeRobot, alerting to email **and** phone:
+
+   | Monitor | Interval | Watches |
+   | --- | --- | --- |
+   | `https://adhvtool.com/api/health` | 5 min | app + database |
+   | `https://adhvtool.com/api/health/ai` | 10–15 min | the Gemini path |
+
+   **The second was added on 13 Aug 2026 and is not optional.** `/api/health`
+   returned 200 for an hour while every AI call failed with a 429 (prepay
+   balance at £0) — the core feature was completely dead and a single monitor
+   would have stayed green throughout. Two endpoints also mean the alert names
+   which half broke, rather than sending you hunting.
+
+   `/api/health/ai` costs about $0.00001 per call (one output token) and caches
+   for 60s, so polling it cannot run up spend or be abused.
 2. **Lower the Vercel spend alert** from $200 to something that would actually
    surprise you — $40–50 given a ~$20 baseline.
 3. **Stripe → Developers → Webhooks** → confirm failure notifications are
