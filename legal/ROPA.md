@@ -37,17 +37,40 @@ No use of user content to train AI models.
 
 ## C. Processors and safeguards
 
-| Processor           | Role                    | Location  | Safeguard                                               |
-| ------------------- | ----------------------- | --------- | ------------------------------------------------------- |
-| Supabase            | Database, auth, storage | EU        | DPA; SCCs/IDTA as applicable                            |
-| Vercel              | Hosting, edge, logs     | US/global | DPA; SCCs/IDTA                                          |
-| Google (Gemini API) | AI generation           | US        | DPA; paid-tier terms exclude training on submitted data |
-| Stripe              | Payments                | US/EU     | DPA; PCI-DSS; SCCs/IDTA                                 |
-| Resend              | Transactional email     | EU        | DPA                                                     |
-| PostHog             | Analytics (optional)    | EU        | DPA; cookieless mode                                    |
+| Processor           | Role                    | Location                     | Safeguard                                                                                                                                                                                                                                                                               |
+| ------------------- | ----------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Supabase            | Database, auth, storage | **UK (London, `eu-west-2`)** | DPA; **no international transfer for the database itself**                                                                                                                                                                                                                              |
+| Vercel              | Hosting, edge, logs     | US/global                    | DPA; SCCs/IDTA                                                                                                                                                                                                                                                                          |
+| Google (Gemini API) | AI generation           | US                           | DPA; paid-tier terms exclude training on submitted data                                                                                                                                                                                                                                 |
+| Stripe              | Payments                | US/EU                        | DPA; PCI-DSS; SCCs/IDTA                                                                                                                                                                                                                                                                 |
+| Resend              | Transactional email     | EU                           | DPA                                                                                                                                                                                                                                                                                     |
+| ~~PostHog~~         | ~~Analytics~~           | —                            | **NOT a processor.** Implemented but inert — no `NEXT_PUBLIC_POSTHOG_KEY` exists in any environment, so every `capture()` is a no-op and no data leaves the app. Becomes a processor only when a key is added, at which point a DPA **and** PECR consent gating are both required first |
 
-**Outstanding action:** formally accept/download each processor's DPA from
-its dashboard and file copies alongside this record.
+> **Note on Vercel:** functions run in `lhr1` (London) as of AA3, so compute is
+> UK-based. Vercel Inc. remains a US company, hence the transfer safeguard.
+
+## C1. DPA status — Art. 28 evidence register
+
+Art. 28 requires a **written contract** with each processor. An
+auto-incorporated DPA satisfies this, but only if the document can be produced
+on request — "it was in the terms I accepted" is not evidence.
+
+**Store signed/downloaded copies OUTSIDE this repository** (they may carry the
+controller's home address, and the repo is one setting away from public).
+Suggested location: `ADHV/legal/DPAs/` in cloud storage.
+
+| Processor       | How obtained                                                                   | Status                                                                        | Date obtained | Evidence filed |
+| --------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- | ------------- | -------------- |
+| Supabase        | Support ticket / `privacy@supabase.com`                                        | **Requested 13 Aug 2026** — awaiting reply on whether a paid plan is required | —             | —              |
+| Vercel          | `vercel.com/legal/dpa` — states it applies to Enterprise **and Pro** customers | ☐                                                                             | —             | —              |
+| Google (Gemini) | Cloud Data Processing Addendum, normally incorporated into the Cloud terms     | ☐                                                                             | —             | —              |
+| Stripe          | DPA forms part of the Services Agreement accepted at activation                | ☐                                                                             | —             | —              |
+| Resend          | Request via support                                                            | ☐                                                                             | —             | —              |
+
+**⚠️ Open question with a decision attached:** Supabase's DPA may be gated to
+paid plans. If so, the Free plan cannot satisfy Art. 28 for the processor
+holding **all** user data — which would make the Pro upgrade a compliance
+requirement, not merely a backup one. The support reply settles it.
 
 ## D. Technical and organisational measures (Art. 32 summary)
 
