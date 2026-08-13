@@ -112,7 +112,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   // --- 3. Stream the breakdown back as it's generated ----------------------
   try {
-    const res = streamGeminiJson({
+    const res = await streamGeminiJson({
       system: buildSystemPrompt({ mode, input }),
       user: buildUserContent(input),
       maxTokens: 2048,
