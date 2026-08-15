@@ -9,6 +9,7 @@ import { EmotionCheck } from "./kid/EmotionCheck";
 import { BoostMenu } from "./kid/BoostMenu";
 import { HomeworkHelper } from "./kid/HomeworkHelper";
 import { CoolDown } from "../regulate/CoolDown";
+import { ShareParentWin } from "../parents/ShareParentWin";
 import { capture } from "@/lib/analytics";
 
 type Tool =
@@ -28,6 +29,9 @@ type Tool =
  */
 export function WithChildView({ child }: { child: Child }) {
   const [tool, setTool] = useState<Tool>(null);
+  /** Tool title just closed — offers a share, does not force one. */
+  const [justUsed, setJustUsed] = useState<string | null>(null);
+  const [sharing, setSharing] = useState<string | null>(null);
   const young = child.ageBand === "4-7";
 
   const tiles: {
@@ -91,6 +95,13 @@ export function WithChildView({ child }: { child: Child }) {
     },
   ];
 
+  /** Close the open tool and remember which it was, so a share can be offered. */
+  function closeTool() {
+    const t = tiles.find((x) => x.key === tool);
+    setTool(null);
+    setJustUsed(t?.title ?? null);
+  }
+
   return (
     <div className="animate-page-in">
       <h2 className="font-display text-xl font-semibold text-text">
@@ -121,24 +132,68 @@ export function WithChildView({ child }: { child: Child }) {
           ))}
       </div>
 
+      {/*
+        Offered AFTER a tool closes, never during — the child may still be
+        beside them, and this is a conversation between adults. A dismissible
+        card rather than an automatic modal: a parent who just got through a
+        hard bedtime should not have to fight a dialog to put the phone down.
+      */}
+      {justUsed && !tool && (
+        <div className="mt-5 flex items-start gap-3 rounded-2xl border border-accent/40 bg-accent-soft/40 p-4">
+          <span className="text-xl" aria-hidden="true">
+            💛
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-text">
+              Did <span className="font-medium">{justUsed}</span> help? Other
+              parents would love to know.
+            </p>
+            <div className="mt-2.5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setSharing(justUsed)}
+                className="rounded-xl bg-accent px-3.5 py-2 text-sm font-semibold text-accent-ink transition-all hover:brightness-105 active:scale-[0.98]"
+              >
+                Share it
+              </button>
+              <button
+                type="button"
+                onClick={() => setJustUsed(null)}
+                className="rounded-xl px-3 py-2 text-sm text-muted transition-colors hover:text-text"
+              >
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {tool === "routine" && (
-        <VisualRoutine ageBand={child.ageBand} onClose={() => setTool(null)} />
+        <VisualRoutine ageBand={child.ageBand} onClose={closeTool} />
       )}
-      {tool === "reward" && (
-        <RewardChart child={child} onClose={() => setTool(null)} />
-      )}
-      {tool === "firstthen" && <FirstThen onClose={() => setTool(null)} />}
+      {tool === "reward" && <RewardChart child={child} onClose={closeTool} />}
+      {tool === "firstthen" && <FirstThen onClose={closeTool} />}
       {tool === "emotion" && (
         <EmotionCheck
           ageBand={child.ageBand}
           onCalmCorner={() => setTool("calm")}
-          onClose={() => setTool(null)}
+          onClose={closeTool}
         />
       )}
-      {tool === "calm" && <CoolDown onClose={() => setTool(null)} />}
-      {tool === "boost" && <BoostMenu onClose={() => setTool(null)} />}
+      {tool === "calm" && <CoolDown onClose={closeTool} />}
+      {tool === "boost" && <BoostMenu onClose={closeTool} />}
       {tool === "homework" && (
-        <HomeworkHelper ageBand={child.ageBand} onClose={() => setTool(null)} />
+        <HomeworkHelper ageBand={child.ageBand} onClose={closeTool} />
+      )}
+
+      {sharing && (
+        <ShareParentWin
+          tool={sharing}
+          onClose={() => {
+            setSharing(null);
+            setJustUsed(null);
+          }}
+        />
       )}
     </div>
   );

@@ -14,10 +14,16 @@ import { MeltdownMode } from "./MeltdownMode";
 import { CpsFlow } from "./CpsFlow";
 
 /**
- * Parents Home (W2) — situation-first. "What's hard right now?" leads to a
- * concrete, age-tailored game plan; everything else lives one layer down in
- * grouped areas (Coach / With your child / Just for you / School). Never a
- * search bar, never a feature buffet.
+ * Parents Home — situation-first. "What's hard right now?" leads to a
+ * concrete, age-tailored game plan; everything else lives one layer down.
+ * Never a search bar, never a feature buffet.
+ *
+ * The five areas are grouped under three headings that answer **when** a
+ * parent would use them — "Do it together", "Get better at this", "Look after
+ * you" — rather than sitting in one flat grid of equally-weighted cards. Every
+ * feature is still here; only the signposting changed. A parent reaching for
+ * this at 7am on a school morning is in a very different state from one
+ * reading it on a quiet evening, and the layout should say which is which.
  */
 
 type Area = "hub" | "coach" | "child" | "you" | "school" | "praise";
@@ -57,32 +63,82 @@ export function ParentsHub({ child }: { child: Child }) {
     }
   }
 
-  const AREAS: { key: Area; emoji: string; title: string; body: string }[] = [
+  /**
+   * Areas grouped by **when a parent would reach for them**, not by what they
+   * contain.
+   *
+   * Previously these were five identical cards in a flat grid, described in
+   * product language ("Bite-size skills + reframes", "Shared-screen kid
+   * tools"). Everything looked equally urgent and nothing said when to use it,
+   * so a tired parent had to read all five and guess. Nothing has been removed
+   * — the same five areas, sorted into the three moments a parent is actually
+   * in, with plain-language descriptions and a peek at what is inside so the
+   * card is not a mystery box.
+   */
+  const GROUPS: {
+    heading: string;
+    hint: string;
+    areas: {
+      key: Area;
+      emoji: string;
+      title: string;
+      body: string;
+      peek: string;
+    }[];
+  }[] = [
     {
-      key: "coach",
-      emoji: "🧭",
-      title: "Coach",
-      body: "Bite-size skills + reframes",
+      heading: "Do it together",
+      hint: "Open on the sofa, beside them",
+      areas: [
+        {
+          key: "child",
+          emoji: "🧒",
+          title: "With your child",
+          body: "Big, calm screens you guide them through.",
+          peek: "Routines · Feelings · Calm corner · Homework +3",
+        },
+        {
+          key: "praise",
+          emoji: "💛",
+          title: "Notice the good",
+          body: "Catch them being brilliant — and keep the receipts.",
+          peek: "Praise coach · Wins log",
+        },
+      ],
     },
     {
-      key: "child",
-      emoji: "🧒",
-      title: "With your child",
-      body: "Shared-screen kid tools",
+      heading: "Get better at this",
+      hint: "For a quiet ten minutes",
+      areas: [
+        {
+          key: "coach",
+          emoji: "🧭",
+          title: "Coach",
+          body: "Short, practical skills that work with an ADHD brain.",
+          peek: "Strategies · Reframes",
+        },
+        {
+          key: "school",
+          emoji: "🏫",
+          title: "School",
+          body: "Getting support, and messages that actually land.",
+          peek: "Your rights · Email templates",
+        },
+      ],
     },
     {
-      key: "praise",
-      emoji: "💛",
-      title: "Notice the good",
-      body: "Praise coach + wins log",
+      heading: "Look after you",
+      hint: "You count too",
+      areas: [
+        {
+          key: "you",
+          emoji: "🫖",
+          title: "Just for you",
+          body: "Two minutes to put yourself back together.",
+          peek: "Reset · Anti-burnout",
+        },
+      ],
     },
-    {
-      key: "you",
-      emoji: "🫖",
-      title: "Just for you",
-      body: "Reset & anti-burnout",
-    },
-    { key: "school", emoji: "🏫", title: "School", body: "Support & messages" },
   ];
 
   if (area !== "hub") {
@@ -154,21 +210,47 @@ export function ParentsHub({ child }: { child: Child }) {
         </button>
       )}
 
-      {/* Grouped areas — one layer down */}
-      <div className="mt-6 grid grid-cols-2 gap-3">
-        {AREAS.map((a) => (
-          <button
-            key={a.key}
-            type="button"
-            onClick={() => setArea(a.key)}
-            className="glass rounded-2xl p-4 text-left shadow-soft transition-transform active:scale-[0.98]"
-          >
-            <div className="text-2xl">{a.emoji}</div>
-            <p className="mt-2 font-semibold text-text">{a.title}</p>
-            <p className="mt-0.5 text-xs text-muted">{a.body}</p>
-          </button>
-        ))}
-      </div>
+      {/* Everything else, grouped by when you'd reach for it. */}
+      {GROUPS.map((g) => (
+        <section key={g.heading} className="mt-7">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="font-display text-base font-semibold text-text">
+              {g.heading}
+            </h3>
+            <span className="text-xs text-muted">{g.hint}</span>
+          </div>
+
+          <div className="mt-2.5 flex flex-col gap-2.5">
+            {g.areas.map((a) => (
+              <button
+                key={a.key}
+                type="button"
+                onClick={() => setArea(a.key)}
+                className="glass flex w-full items-start gap-3.5 rounded-2xl p-4 text-left shadow-soft transition-transform active:scale-[0.99]"
+              >
+                <span className="text-2xl leading-none" aria-hidden="true">
+                  {a.emoji}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold text-text">
+                    {a.title}
+                  </span>
+                  <span className="mt-0.5 block text-sm text-muted">
+                    {a.body}
+                  </span>
+                  {/* What's actually inside — so the card isn't a mystery. */}
+                  <span className="mt-1.5 block truncate text-xs text-muted/75">
+                    {a.peek}
+                  </span>
+                </span>
+                <span className="mt-1 text-muted/60" aria-hidden="true">
+                  ›
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ))}
 
       {/* Overlays */}
       {plan && (
