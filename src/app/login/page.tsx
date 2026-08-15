@@ -14,11 +14,21 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 type State = "idle" | "sending" | "sent" | "error";
 
+/**
+ * Supabase rate-limits OTP sends per address. Requesting again inside that
+ * window returns an error and sends nothing — leaving the previous, now
+ * expired, email as the only one in the inbox, which reads to the user as
+ * "it keeps sending me the same dead link". The cooldown makes the wait
+ * visible instead of letting them hammer a button that silently fails.
+ */
+const RESEND_COOLDOWN_SECONDS = 60;
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<State>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [next, setNext] = useState("/app");
+  const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -26,13 +36,22 @@ export default function LoginPage() {
     if (n && n.startsWith("/")) setNext(n);
     if (params.get("error")) {
       setState("error");
-      setErrorMsg("That link didn't work. Let's send a fresh one.");
+      setErrorMsg(
+        "That link didn't work — they expire, and each one only works once. Send a fresh one and use the newest email.",
+      );
     }
   }, []);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email.trim()) return;
+  // Tick the resend cooldown down to zero.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  async function sendLink() {
+    const address = email.trim();
+    if (!address) return;
 
     setState("sending");
     setErrorMsg(null);
@@ -54,15 +73,23 @@ export default function LoginPage() {
       )}`;
 
       const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
+        email: address,
         options: { emailRedirectTo: redirectTo },
       });
 
       if (error) {
         setState("error");
-        setErrorMsg("Something went wrong sending the link. Try again?");
+        // A rate-limit rejection is the common case and has a real remedy —
+        // waiting — so say that rather than "something went wrong".
+        const rateLimited = /rate|limit|too many|seconds/i.test(error.message);
+        setErrorMsg(
+          rateLimited
+            ? "We've just sent one — please wait a minute before asking for another."
+            : "Something went wrong sending the link. Try again?",
+        );
       } else {
         setState("sent");
+        setCooldown(RESEND_COOLDOWN_SECONDS);
       }
     } catch {
       // The chunk fetch itself can fail (offline, or a deploy mid-session).
@@ -70,6 +97,11 @@ export default function LoginPage() {
       setState("error");
       setErrorMsg("Something went wrong sending the link. Try again?");
     }
+  }
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await sendLink();
   }
 
   return (
@@ -96,10 +128,36 @@ export default function LoginPage() {
               <strong className="text-text">{email}</strong>. Tap it and
               you&apos;re in — no password to remember.
             </p>
+            <p className="mt-3 text-sm text-muted/90">
+              Always open the <strong className="text-text">newest</strong>{" "}
+              email — asking for another link stops the older ones working, and
+              some inboxes tuck them into the same thread.
+            </p>
+
             <button
               type="button"
-              onClick={() => setState("idle")}
-              className="mt-6 text-sm text-accent hover:underline"
+              onClick={() => void sendLink()}
+              disabled={cooldown > 0}
+              className="mt-6 w-full rounded-2xl border border-border bg-surface-2 px-5 py-3 font-medium text-text transition-colors hover:border-accent/50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {cooldown > 0
+                ? `Send another in ${cooldown}s`
+                : "Didn't arrive? Send another"}
+            </button>
+
+            {errorMsg && (
+              <p className="mt-3 text-sm text-accent" role="alert">
+                {errorMsg}
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setState("idle");
+                setErrorMsg(null);
+              }}
+              className="mt-4 text-sm text-accent hover:underline"
             >
               Use a different email
             </button>
