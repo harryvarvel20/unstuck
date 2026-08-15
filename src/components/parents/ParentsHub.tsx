@@ -217,7 +217,10 @@ export function ParentsHub({ child }: { child: Child }) {
             <h3 className="font-display text-base font-semibold text-text">
               {g.heading}
             </h3>
-            <span className="text-xs text-muted">{g.hint}</span>
+            <span className="eyebrow">{g.hint}</span>
+          </div>
+          <div className="rule-ornament mt-2" aria-hidden="true">
+            <span />
           </div>
 
           <div className="mt-2.5 flex flex-col gap-2.5">

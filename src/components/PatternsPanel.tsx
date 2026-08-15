@@ -66,23 +66,36 @@ export function PatternsPanel() {
   }
 
   return (
-    <section className="glass rounded-3xl p-6 shadow-soft">
-      <h2 className="font-display text-lg font-semibold text-text">
+    // The one card on this page that earns `card-featured` — everything else
+    // here is an AI-written summary; this is the measured thing.
+    <section className="card-featured rounded-3xl p-6 sm:p-7">
+      <p className="eyebrow">Observed</p>
+      <h2 className="mt-1.5 font-display text-xl font-semibold text-text">
         What ADHV has noticed
       </h2>
       <p className="mt-1 text-sm text-muted">
-        From what you actually did — not a guess.
+        Drawn from what you actually did — not a guess.
       </p>
 
-      <ul className="mt-4 flex flex-col gap-3.5">
-        {patterns.map((p) => (
-          <li key={p.id} className="flex items-start gap-3">
-            <span className="text-xl leading-none" aria-hidden="true">
-              {p.emoji}
+      <div className="rule-ornament my-5" aria-hidden="true">
+        <span />
+      </div>
+
+      <ul className="flex flex-col gap-5">
+        {patterns.map((p, i) => (
+          <li key={p.id} className="flex items-start gap-3.5">
+            {/* Numbered rather than bulleted: these are findings, and a
+                printed page numbers its findings. */}
+            <span className="numeral mt-0.5" aria-hidden="true">
+              {i + 1}
             </span>
             <div className="min-w-0">
-              <p className="font-medium text-text">{p.headline}</p>
-              <p className="mt-0.5 text-sm text-muted">{p.detail}</p>
+              <p className="font-display text-[1.0625rem] font-semibold leading-snug text-text">
+                {p.headline}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                {p.detail}
+              </p>
             </div>
           </li>
         ))}
