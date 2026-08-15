@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/SiteHeader";
 import { FocusProfileScreen } from "@/components/FocusProfileScreen";
+import { PatternsPanel } from "@/components/PatternsPanel";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { computeGoldenHours, type FocusSignal } from "@/lib/focusProfile";
 
@@ -49,7 +50,15 @@ export default async function ProfilePage() {
           actually made of.
         </p>
 
+        {/*
+          Observations before interpretation. What the app measured comes
+          first; what a model makes of it comes after.
+        */}
         <div className="mt-6">
+          <PatternsPanel />
+        </div>
+
+        <div className="mt-4">
           <FocusProfileScreen golden={golden} isPro={isPro} cached={cached} />
         </div>
       </main>
