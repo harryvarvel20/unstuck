@@ -459,6 +459,45 @@ button,
       transparent 70%
     );
 }
+/* --- Optional photographic backdrop ---------------------------------------
+   Drop a file at `public/backdrop.jpg` and it appears here, already dulled to
+   the palette. Remove the file and it vanishes — a CSS background that 404s
+   simply doesn't paint, so there is no broken image and nothing to clean up.
+
+   The dulling is not a single opacity. Four things happen, in order:
+     grayscale(1)   strips the original palette entirely, so a green photo
+                    cannot fight ivory-navy-gold
+     sepia(0.55)    re-tints the greyscale warm, into the paper family
+     contrast(0.8)  flattens the tonal range so nothing in the image
+                    competes with foreground text for attention
+     brightness     lifts on light, sinks on dark
+   then a low opacity on top. The result reads as toned stock, not wallpaper.
+
+   Its own element rather than a pseudo — `.mesh` already spends ::before on
+   the marbling and ::after on the grain, and it needs its own `filter`, which
+   would otherwise cascade onto both.
+
+   ⚠️ LICENSING. Whatever you put here ships inside a commercial product with
+   your name on the Terms. Use something you own, or a licence that permits
+   commercial use — Unsplash and Pexels both do, free. An image lifted from a
+   Pinterest pin almost certainly does not. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -2; /* behind .mesh (-1), which layers marbling over it */
+  pointer-events: none;
+  background-image: url("/backdrop.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: grayscale(1) sepia(0.55) contrast(0.8) brightness(1.06);
+  opacity: 0.14;
+}
+.dark .backdrop {
+  filter: grayscale(1) sepia(0.35) contrast(0.75) brightness(0.5);
+  opacity: 0.22;
+}
+
 /* --- Marbled endpaper -----------------------------------------------------
    The swirled stock inside an antique book cover, generated rather than
    photographed.
