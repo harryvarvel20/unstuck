@@ -192,26 +192,27 @@ button,
    corners — light catching the edge of good stock. It is the difference
    between a rounded rectangle and something that looks *made*, and it costs
    one pseudo-element. */
+/* ⚠️ The top edge is drawn as a BACKGROUND IMAGE, not a ::before.
+   `.glass` is applied to the fixed nav rail and the fixed bottom tab bar. An
+   earlier version set `position: relative` here so a pseudo-element could be
+   anchored — and because this file loads AFTER `@tailwind utilities`, and both
+   are single-class selectors, `.glass` beat `.fixed`. Both navs dropped out of
+   fixed positioning and into the document flow.
+   **Decorative utilities must never set `position`.** */
 .glass {
-  position: relative;
   background-color: rgb(var(--surface));
-  border: 1px solid rgb(var(--gold) / 0.3);
-  box-shadow: var(--shadow-soft);
-}
-.glass::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 1px;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(
+  background-image: linear-gradient(
     90deg,
     transparent,
     rgb(var(--gold) / 0.55) 22%,
     rgb(var(--gold) / 0.55) 78%,
     transparent
   );
+  background-repeat: no-repeat;
+  background-size: 100% 1px;
+  background-position: top center;
+  border: 1px solid rgb(var(--gold) / 0.3);
+  box-shadow: var(--shadow-soft);
 }
 
 /* --- Editorial furniture --------------------------------------------------
@@ -286,37 +287,43 @@ button,
    but a solid gold top edge and a deeper shadow lift it out of the stack.
    Use ONCE per screen; its whole value is being the exception. */
 .card-featured {
-  position: relative;
   background-color: rgb(var(--surface));
-  border: 1px solid rgb(var(--gold) / 0.45);
-  box-shadow: var(--shadow-float);
-  overflow: hidden;
-}
-.card-featured::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 2px;
-  background: linear-gradient(
+  /* Background image again, not a pseudo-element — same reason as `.glass`. */
+  background-image: linear-gradient(
     90deg,
     rgb(var(--gold) / 0.25),
     rgb(var(--gold)),
     rgb(var(--gold) / 0.25)
   );
+  background-repeat: no-repeat;
+  background-size: 100% 2px;
+  background-position: top center;
+  border: 1px solid rgb(var(--gold) / 0.45);
+  box-shadow: var(--shadow-float);
 }
 
-/* --- PSEUDO-ELEMENT BUDGET ------------------------------------------------
-   Each decorative utility below claims ::before or ::after. An element has
-   exactly one of each, so combining two utilities that want the same slot
-   silently destroys one of them — no error, no warning, just a missing gold
-   edge nobody notices for a month.
+/* --- RULES FOR DECORATIVE UTILITIES ---------------------------------------
 
-     ::before  →  .glass  .card-featured  .watermark
-     ::after   →  .engine-turned  .frame-certificate  .rule-ornament
+   1. NEVER SET `position`. This file loads after `@tailwind utilities`, and
+      both are single-class selectors — so a `position` here BEATS Tailwind's
+      `.fixed` / `.absolute` / `.sticky`. Setting `position: relative` on
+      `.glass` un-fixed the nav rail and the bottom tab bar, which then
+      scrolled away with the page. Draw edges with `background-image` instead;
+      it needs no positioning context. `.glass` and `.card-featured` both do.
 
-   Safe to stack: one from each row (e.g. `glass engine-turned`).
-   Never stack: two from the same row.
-   Need three? Wrap the content in a child element and put one on that.
+   2. PSEUDO-ELEMENT BUDGET. An element has one ::before and one ::after.
+      Stacking two utilities that want the same slot silently destroys one —
+      no error, just a missing detail nobody notices for a month.
+
+        ::before  →  .watermark
+        ::after   →  .engine-turned  .frame-certificate  .rule-ornament
+
+      Safe: one from each row. Never: two from the same row.
+      Need more? Wrap the content in a child and decorate that.
+
+   3. `.engine-turned` and `.watermark` DO set `position: relative`, because
+      their marks cannot be expressed as a background. Never put them on a
+      `fixed`, `absolute` or `sticky` element — see rule 1.
    ------------------------------------------------------------------------ */
 
 /* --- Engine-turning -------------------------------------------------------

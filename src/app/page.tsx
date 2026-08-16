@@ -66,10 +66,8 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section>
-        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-accent">
-          ADHV — for brains that won&apos;t start
-        </p>
-        <h1 className="text-3xl font-semibold leading-tight text-text sm:text-4xl">
+        <p className="eyebrow mb-3">ADHV — for brains that won&apos;t start</p>
+        <h1 className="deboss text-3xl font-semibold leading-tight text-text sm:text-4xl">
           The app that gets you started when your brain won&apos;t — and sits
           with you <span className="grad-text">until it&apos;s done.</span>
         </h1>
@@ -85,18 +83,33 @@ export default function LandingPage() {
 
       {/* Features */}
       <section className="mt-16">
-        <h2 className="text-center text-sm font-semibold uppercase tracking-widest text-muted">
+        <div className="rule-ornament mb-5" aria-hidden="true">
+          <span />
+        </div>
+        <h2 className="text-center font-display text-xl font-semibold text-text">
           Not just another AI wrapper
         </h2>
+        {/* Numbered, not bulleted — three claims set like a prospectus. */}
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          {FEATURES.map((f) => (
+          {FEATURES.map((f, i) => (
             <div
               key={f.title}
-              className="rounded-3xl border border-border bg-surface p-5"
+              className="glass engine-turned rounded-3xl p-5 sm:p-6"
             >
-              <div className="text-2xl">{f.emoji}</div>
-              <h3 className="mt-3 font-semibold text-text">{f.title}</h3>
-              <p className="mt-1.5 text-sm text-muted">{f.body}</p>
+              <div className="flex items-center gap-2.5">
+                <span className="numeral" aria-hidden="true">
+                  {i + 1}
+                </span>
+                <span className="text-xl" aria-hidden="true">
+                  {f.emoji}
+                </span>
+              </div>
+              <h3 className="deboss mt-3 font-display text-lg font-semibold text-text">
+                {f.title}
+              </h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted">
+                {f.body}
+              </p>
             </div>
           ))}
         </div>
@@ -104,11 +117,10 @@ export default function LandingPage() {
 
       {/* Parents Mode */}
       <section className="mt-16">
-        <div className="glass rounded-3xl p-7 shadow-soft">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-            Parents Mode
-          </p>
-          <h2 className="mt-2 font-display text-2xl font-semibold text-text sm:text-3xl">
+        {/* The one featured surface on this page — see globals.css. */}
+        <div className="card-featured watermark rounded-3xl p-7 sm:p-8">
+          <p className="eyebrow">Parents Mode</p>
+          <h2 className="deboss mt-2 font-display text-2xl font-semibold text-text sm:text-3xl">
             For your brain — and your kid&apos;s.
           </h2>
           <p className="mt-3 max-w-xl leading-relaxed text-muted">
