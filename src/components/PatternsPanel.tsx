@@ -86,8 +86,10 @@ export function PatternsPanel() {
           <li key={p.id} className="flex items-start gap-3.5">
             {/* Numbered rather than bulleted: these are findings, and a
                 printed page numbers its findings. */}
+            {/* Inner span is required: `.numeral` rotates 45° into a lozenge
+                and counter-rotates its child so the figure stays upright. */}
             <span className="numeral mt-0.5" aria-hidden="true">
-              {i + 1}
+              <span>{i + 1}</span>
             </span>
             <div className="min-w-0">
               <p className="font-display text-[1.0625rem] font-semibold leading-snug text-text">

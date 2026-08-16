@@ -530,3 +530,211 @@ body:has(nav[data-tabbar]) {
     transform: scale(1.05);
   }
 }
+
+/* ==========================================================================
+   DESIGN v2 — DÉCO
+   ==========================================================================
+   Same three colours. Ivory, midnight, gilt IS the 1925 palette — this is
+   where it came from. What changes is the geometry.
+
+   v1 was editorial print: soft rounded cards, hairline rules, letterpress,
+   a quiet page. v2 is architectural: squared corners, fluted surfaces,
+   sunburst fans, stepped rules, wide-tracked capitals. Lift-lobby rather
+   than library.
+
+   Implemented as an OVERRIDE LAYER at the end of the file. Every rule here
+   redeploys a class name v1 already defined, so the whole app transforms
+   without a single component edit — and deleting this block restores v1
+   exactly. The v1 definitions are still above, untouched, for reference.
+
+   Rule 1 from the header still binds: NOTHING here sets `position`. Every
+   mark is drawn with background layers or borders, so the fixed nav rail
+   stays fixed. The guard test enforces it.
+   ========================================================================== */
+
+/* --- Squared, fluted panel ------------------------------------------------
+   Corners squared off. Vertical fluting — the parallel reeding on a deco
+   column or a cigarette case — carried as a background layer, with a heavier
+   gilt rule top and bottom. */
+.glass {
+  border-radius: 0;
+  background-color: rgb(var(--surface));
+  background-image:
+    /* stepped gilt rule, top */
+    linear-gradient(
+      90deg,
+      rgb(var(--gold) / 0.9) 0 12%,
+      rgb(var(--gold) / 0.35) 12% 20%,
+      transparent 20% 80%,
+      rgb(var(--gold) / 0.35) 80% 88%,
+      rgb(var(--gold) / 0.9) 88%
+    ),
+    /* matching rule, bottom */
+    linear-gradient(
+        90deg,
+        rgb(var(--gold) / 0.9) 0 12%,
+        rgb(var(--gold) / 0.35) 12% 20%,
+        transparent 20% 80%,
+        rgb(var(--gold) / 0.35) 80% 88%,
+        rgb(var(--gold) / 0.9) 88%
+      ),
+    /* vertical fluting */
+    repeating-linear-gradient(
+        90deg,
+        rgb(var(--gold) / 0.05) 0 1px,
+        transparent 1px 9px
+      );
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-size:
+    100% 2px,
+    100% 2px,
+    auto;
+  background-position: top, bottom, center;
+  border: 1px solid rgb(var(--gold) / 0.28);
+  box-shadow: var(--shadow-soft);
+}
+
+/* --- The sunburst panel ---------------------------------------------------
+   A rayed fan behind the featured surface — the motif on every deco lobby
+   floor, radiator grille and cinema screen. `repeating-conic-gradient` draws
+   it in one declaration, anchored below the panel so text stays crisp. */
+.card-featured {
+  border-radius: 0;
+  background-color: rgb(var(--surface));
+  background-image:
+    linear-gradient(
+      90deg,
+      rgb(var(--gold)) 0 18%,
+      rgb(var(--gold) / 0.4) 18% 26%,
+      rgb(var(--gold) / 0.15) 26% 74%,
+      rgb(var(--gold) / 0.4) 74% 82%,
+      rgb(var(--gold)) 82%
+    ),
+    repeating-conic-gradient(
+      from 200deg at 50% 118%,
+      rgb(var(--gold) / 0.12) 0deg 2.2deg,
+      transparent 2.2deg 8deg
+    );
+  background-repeat: no-repeat, no-repeat;
+  background-size:
+    100% 3px,
+    100% 100%;
+  background-position: top, center;
+  border: 1px solid rgb(var(--gold) / 0.55);
+  box-shadow: var(--shadow-float);
+}
+
+/* --- Capitals, spaced like signage ---------------------------------------- */
+.eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: rgb(var(--gold));
+  filter: saturate(0.9) brightness(0.84);
+}
+.dark .eyebrow {
+  filter: none;
+}
+
+/* --- Chevron divider ------------------------------------------------------
+   The diamond becomes a stepped chevron flanked by double rules. */
+.rule-ornament {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: rgb(var(--gold) / 0.75);
+}
+.rule-ornament::before,
+.rule-ornament::after {
+  content: "";
+  flex: 1;
+  height: 3px;
+  border-top: 1px solid rgb(var(--gold) / 0.45);
+  border-bottom: 1px solid rgb(var(--gold) / 0.22);
+}
+.rule-ornament > span {
+  width: 0;
+  height: 0;
+  border: 0;
+  transform: none;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 7px solid currentColor;
+}
+
+/* --- Lozenge numeral ------------------------------------------------------
+   The ring becomes a squared lozenge: a rotated square with the figure held
+   upright inside it. */
+.numeral {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  flex: none;
+  border-radius: 0;
+  border: 1px solid rgb(var(--gold) / 0.75);
+  transform: rotate(45deg);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--accent));
+}
+.numeral > * {
+  display: block;
+  transform: rotate(-45deg);
+}
+
+/* --- Primary action: an engraved plaque ----------------------------------- */
+.grad-primary {
+  border-radius: 0;
+  background-color: rgb(var(--accent));
+  color: rgb(var(--accent-ink));
+  border: 1px solid rgb(var(--gold) / 0.65);
+  box-shadow:
+    inset 0 0 0 1px rgb(var(--accent-ink) / 0.14),
+    inset 0 2px 0 rgb(var(--accent-ink) / 0.16),
+    var(--shadow-soft);
+  letter-spacing: 0.04em;
+}
+
+/* --- The ground -----------------------------------------------------------
+   Linen grain gives way to a vast, faint sunburst rising from the horizon,
+   with fine vertical reeding over it. */
+.mesh {
+  background:
+    repeating-conic-gradient(
+      from 200deg at 50% 108%,
+      rgb(var(--gold) / 0.055) 0deg 2.6deg,
+      transparent 2.6deg 9deg
+    ),
+    linear-gradient(to bottom, rgb(var(--gold) / 0.05) 0%, transparent 42%);
+}
+.mesh::after {
+  opacity: 0.05;
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgb(var(--gold) / 0.5) 0 1px,
+    transparent 1px 14px
+  );
+}
+
+/* --- Display type: taller, wider, stiller --------------------------------- */
+h1,
+h2,
+.font-display {
+  letter-spacing: -0.01em;
+}
+h1 {
+  letter-spacing: 0.005em;
+  font-weight: 700;
+}
+
+/* Engine-turning is a certificate mark, not a deco one — the fan above does
+   this job now. Neutralised rather than deleted so v1 restores cleanly. */
+.engine-turned::after {
+  opacity: 0;
+}

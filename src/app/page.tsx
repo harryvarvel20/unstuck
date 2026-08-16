@@ -98,7 +98,7 @@ export default function LandingPage() {
             >
               <div className="flex items-center gap-2.5">
                 <span className="numeral" aria-hidden="true">
-                  {i + 1}
+                  <span>{i + 1}</span>
                 </span>
                 <span className="text-xl" aria-hidden="true">
                   {f.emoji}
