@@ -2,7 +2,7 @@
 /**
  * Seed the Activity Center with demo content, for marketing screen recordings.
  *
- * ⚠️ READ THIS BEFORE RUNNING IT
+ * âš ï¸ READ THIS BEFORE RUNNING IT
  *
  * This writes real rows to whichever database SUPABASE_SERVICE_ROLE_KEY points
  * at. Every account it creates is prefixed `demo_` and every post is tagged
@@ -10,7 +10,7 @@
  * here touches a row it did not create.
  *
  * On honesty: sample data in a product demo is normal and fine. Implying an
- * active community that does not exist is not — the CPRs and the DMCC Act 2024
+ * active community that does not exist is not â€” the CPRs and the DMCC Act 2024
  * both bite on misleading consumer practices, which is the same law your
  * creator terms already lean on. Record what the FEATURE does. Do not narrate
  * these as real people, and take them down when you are finished:
@@ -20,7 +20,7 @@
  *
  * Photos are optional. Drop images into scripts/demo-photos/ and they are
  * uploaded to the social bucket and attached in order. Use images you own or
- * that are licensed for commercial use — these appear in published video.
+ * that are licensed for commercial use â€” these appear in published video.
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -44,12 +44,12 @@ const TEARDOWN = process.argv.includes("--teardown");
 const MARK = "demo-seed";
 const PREFIX = "demo_";
 const PHOTO_DIR = join(process.cwd(), "scripts", "demo-photos");
-/** Must match migration 0017 — the bucket is `social-photos`, not `social`. */
+/** Must match migration 0017 â€” the bucket is `social-photos`, not `social`. */
 const BUCKET = "social-photos";
 
 /* ---------------------------------------------------------------------------
  * The people. Handles read like real ADHD-community usernames rather than
- * firstname1234 — that is most of what makes a seeded feed look plausible.
+ * firstname1234 â€” that is most of what makes a seeded feed look plausible.
  * ------------------------------------------------------------------------ */
 const PEOPLE = [
   { handle: "demo_ferngoeswest", name: "Fern", parents: false },
@@ -65,7 +65,7 @@ const PEOPLE = [
 /* ---------------------------------------------------------------------------
  * The posts. Written in ADHV's voice: small, specific, unglamorous, no
  * triumphalism. "I did the thing I'd been avoiding" beats "CRUSHED MY GOALS".
- * Specific detail is what makes a feed feel real — a named dread, a number of
+ * Specific detail is what makes a feed feel real â€” a named dread, a number of
  * weeks, a mug.
  * ------------------------------------------------------------------------ */
 const MAIN_POSTS = [
@@ -134,6 +134,35 @@ const MAIN_POSTS = [
     win: "Cooked instead of ordering. Beans on toast counts.",
     caption: "It absolutely counts.",
     tags: ["food"],
+    photo: "food",
+  },
+  {
+    who: "demo_ninetythings",
+    win: "Went for the run I've been putting off for two weeks.",
+    caption: "Got as far as putting trainers on and decided that was enough. Then went anyway.",
+    tags: ["movement"],
+    photo: "running",
+  },
+  {
+    who: "demo_quietkettle",
+    win: "Got to the gym. Didn't train hard. Went.",
+    caption: "Turning up was the whole goal.",
+    tags: ["movement"],
+    photo: "gym",
+  },
+  {
+    who: "demo_mossandmugs",
+    win: "Walked up the hill instead of doomscrolling on the sofa.",
+    caption: null,
+    tags: ["outside"],
+    photo: "mountain",
+  },
+  {
+    who: "demo_halfdonehal",
+    win: "Twenty minutes outside. First time this week.",
+    caption: "Didn't take headphones. Weirdly that was the hard bit.",
+    tags: ["outside"],
+    photo: "woods",
   },
   {
     who: "demo_halfdonehal",
@@ -182,7 +211,7 @@ const PARENTS_POSTS = [
   },
   {
     who: "demo_latebloomingj",
-    win: "First–Then got shoes on in under a minute.",
+    win: "Firstâ€“Then got shoes on in under a minute.",
     caption: "First shoes, then the podcast in the car. That's it. That's the whole trick.",
     tags: ["first-then"],
   },
@@ -196,7 +225,7 @@ async function findDemoUsers() {
 }
 
 async function teardown() {
-  console.log("Removing demo content…\n");
+  console.log("Removing demo contentâ€¦\n");
 
   const { data: posts } = await db
     .from("posts")
@@ -222,19 +251,37 @@ async function teardown() {
   console.log("\nDone. Every seeded row is gone.");
 }
 
-function photoFiles() {
-  if (!existsSync(PHOTO_DIR)) return [];
-  return readdirSync(PHOTO_DIR)
-    .filter((f) => [".jpg", ".jpeg", ".png", ".webp"].includes(extname(f).toLowerCase()))
-    .sort();
+/**
+ * Match a post's `photo` keyword to a file in scripts/demo-photos/.
+ *
+ * Deliberately keyword-matched, NOT attached in filename order. Order-based
+ * attachment put a mountain on a post about opening a letter â€” fine in a
+ * database, obviously wrong the moment it is on camera. A post only gets an
+ * image if it asked for one by name.
+ */
+function photoIndex() {
+  if (!existsSync(PHOTO_DIR)) return new Map();
+  const files = readdirSync(PHOTO_DIR).filter((f) =>
+    [".jpg", ".jpeg", ".png", ".webp"].includes(extname(f).toLowerCase()),
+  );
+  const map = new Map();
+  for (const f of files) {
+    const lower = f.toLowerCase();
+    // Skip Windows' "- Copy" duplicates so the same shot doesn't appear twice.
+    if (lower.includes("- copy")) continue;
+    for (const key of ["food", "running", "gym", "mountain", "woods"]) {
+      if (lower.includes(key) && !map.has(key)) map.set(key, f);
+    }
+  }
+  return map;
 }
 
 async function seed() {
-  const photos = photoFiles();
+  const photos = photoIndex();
   console.log(
-    photos.length
-      ? `Found ${photos.length} photo(s) in scripts/demo-photos/\n`
-      : "No photos found — seeding text-only posts.\n" +
+    photos.size
+      ? `Matched ${photos.size} photo(s): ${[...photos.keys()].join(", ")}\n`
+      : "No photos found â€” seeding text-only posts.\n" +
           "  (drop images into scripts/demo-photos/ to attach them)\n",
   );
 
@@ -273,7 +320,7 @@ async function seed() {
   }
 
   // --- posts ---
-  let photoIdx = 0;
+
   let n = 0;
 
   async function post(item, space) {
@@ -281,14 +328,18 @@ async function seed() {
     if (!userId) return;
 
     let photoPath = null;
-    if (photoIdx < photos.length) {
-      const file = photos[photoIdx++];
+    const file = item.photo ? photos.get(item.photo) : null;
+    if (file) {
       const bytes = readFileSync(join(PHOTO_DIR, file));
-      const path = `${userId}/${Date.now()}-${file}`;
-      const { error } = await db.storage
-        .from(BUCKET)
-        .upload(path, bytes, { contentType: `image/${extname(file).slice(1)}` });
-      if (!error) photoPath = path;
+      // Spaces in object keys need encoding downstream; strip them here.
+      const safe = file.replace(/[^a-zA-Z0-9.-]+/g, "-").toLowerCase();
+      const path = `${userId}/${Date.now()}-${safe}`;
+      const ext = extname(file).slice(1).toLowerCase();
+      const { error } = await db.storage.from(BUCKET).upload(path, bytes, {
+        contentType: `image/${ext === "jpg" ? "jpeg" : ext}`,
+      });
+      if (error) console.log(`  ! photo ${file}: ${error.message}`);
+      else photoPath = path;
     }
 
     // Spread over the last ~10 days so the feed doesn't look bulk-inserted.
