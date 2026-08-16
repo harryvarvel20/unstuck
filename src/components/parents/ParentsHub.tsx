@@ -165,8 +165,11 @@ export function ParentsHub({ child }: { child: Child }) {
   return (
     <div className="mt-6">
       {/* Situation-first */}
-      <div className="glass rounded-3xl p-6 shadow-soft">
-        <h2 className="font-display text-xl font-semibold text-text">
+      {/* glass (::before) + engine-turned (::after) — see the pseudo-element
+          budget note in globals.css before adding a third. */}
+      <div className="glass engine-turned rounded-3xl p-6 shadow-soft">
+        <p className="eyebrow">Start here</p>
+        <h2 className="deboss mt-1.5 font-display text-xl font-semibold text-text">
           What&apos;s hard right now?
         </h2>
         <p className="mt-1 text-sm text-muted">

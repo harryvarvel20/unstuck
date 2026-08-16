@@ -68,9 +68,9 @@ export function PatternsPanel() {
   return (
     // The one card on this page that earns `card-featured` — everything else
     // here is an AI-written summary; this is the measured thing.
-    <section className="card-featured rounded-3xl p-6 sm:p-7">
+    <section className="card-featured engine-turned rounded-3xl p-6 sm:p-7">
       <p className="eyebrow">Observed</p>
-      <h2 className="mt-1.5 font-display text-xl font-semibold text-text">
+      <h2 className="deboss mt-1.5 font-display text-xl font-semibold text-text">
         What ADHV has noticed
       </h2>
       <p className="mt-1 text-sm text-muted">

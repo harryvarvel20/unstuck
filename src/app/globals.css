@@ -305,6 +305,111 @@ button,
   );
 }
 
+/* --- PSEUDO-ELEMENT BUDGET ------------------------------------------------
+   Each decorative utility below claims ::before or ::after. An element has
+   exactly one of each, so combining two utilities that want the same slot
+   silently destroys one of them — no error, no warning, just a missing gold
+   edge nobody notices for a month.
+
+     ::before  →  .glass  .card-featured  .watermark
+     ::after   →  .engine-turned  .frame-certificate  .rule-ornament
+
+   Safe to stack: one from each row (e.g. `glass engine-turned`).
+   Never stack: two from the same row.
+   Need three? Wrap the content in a child element and put one on that.
+   ------------------------------------------------------------------------ */
+
+/* --- Engine-turning -------------------------------------------------------
+   The guilloché rosette found on share certificates, bond paper and
+   banknotes — twelve overlapping circles struck around a centre. It is the
+   single most "old money" mark there is, and at 5% opacity it reads as
+   texture rather than decoration: you feel it before you see it.
+
+   Gold stroke works in both themes (gold is gold in light and midnight), so
+   one pattern serves both; only the opacity shifts. */
+.engine-turned {
+  position: relative;
+  isolation: isolate;
+}
+.engine-turned::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.055;
+  background-position: center;
+  background-size: 220px 220px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cg fill='none' stroke='%23B08D57' stroke-width='0.7'%3E%3Ccircle cx='118' cy='90' r='46'/%3E%3Ccircle cx='114.2' cy='104' r='46'/%3E%3Ccircle cx='104' cy='114.2' r='46'/%3E%3Ccircle cx='90' cy='118' r='46'/%3E%3Ccircle cx='76' cy='114.2' r='46'/%3E%3Ccircle cx='65.8' cy='104' r='46'/%3E%3Ccircle cx='62' cy='90' r='46'/%3E%3Ccircle cx='65.8' cy='76' r='46'/%3E%3Ccircle cx='76' cy='65.8' r='46'/%3E%3Ccircle cx='90' cy='62' r='46'/%3E%3Ccircle cx='104' cy='65.8' r='46'/%3E%3Ccircle cx='114.2' cy='76' r='46'/%3E%3C/g%3E%3C/svg%3E");
+}
+.dark .engine-turned::after {
+  opacity: 0.075;
+}
+
+/* --- Certificate frame ----------------------------------------------------
+   A double rule, the outer heavier than the inner — how a share certificate,
+   a banknote and a good bookplate are all bordered. Costs one pseudo-element
+   and instantly reads as "issued" rather than "rendered". */
+.frame-certificate {
+  position: relative;
+}
+.frame-certificate::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgb(var(--gold) / 0.3);
+  border-radius: calc(1.5rem - 6px);
+  pointer-events: none;
+}
+
+/* --- Letterpress deboss ---------------------------------------------------
+   A single highlight pixel below the glyph, so display type sits *in* the
+   paper rather than on it. Invisible as an effect; obvious in its absence. */
+.deboss {
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.55);
+}
+.dark .deboss {
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.45);
+}
+
+/* --- Ledger rules ---------------------------------------------------------
+   Faint horizontal ruling, like an accounts book. For lists of figures or
+   findings where the eye needs a line to travel along. */
+.ledger {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(1.75rem - 1px),
+    rgb(var(--gold) / 0.13) calc(1.75rem - 1px),
+    rgb(var(--gold) / 0.13) 1.75rem
+  );
+}
+
+/* --- Watermark ------------------------------------------------------------
+   An oversized ornament sunk into the corner of a surface. Barely there, the
+   way a watermark should be — held to the light rather than printed. */
+.watermark {
+  position: relative;
+  overflow: hidden;
+}
+.watermark::before {
+  content: "";
+  position: absolute;
+  right: -2.5rem;
+  bottom: -3.5rem;
+  width: 11rem;
+  height: 11rem;
+  pointer-events: none;
+  opacity: 0.06;
+  border-radius: 9999px;
+  border: 1.5px solid rgb(var(--gold));
+  box-shadow:
+    inset 0 0 0 10px transparent,
+    inset 0 0 0 11px rgb(var(--gold) / 0.85),
+    inset 0 0 0 22px transparent,
+    inset 0 0 0 23px rgb(var(--gold) / 0.6);
+}
+
 /* Numbered step marker — oldstyle figure in a thin gold ring. For ordered
    sequences that deserve more than a bullet. */
 .numeral {
