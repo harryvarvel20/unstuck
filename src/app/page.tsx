@@ -45,6 +45,33 @@ const FAQ = [
   },
 ];
 
+/**
+ * A section hung off the spine. The mark sits on the gilt rule; the rule runs
+ * behind it and on into the next section, so the page reads as one continuous
+ * line rather than a stack of separate boxes.
+ */
+function Section({
+  mark,
+  label,
+  last,
+  children,
+}: {
+  mark: string;
+  label?: string;
+  last?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className={`spine mt-14 ${last ? "spine--last" : ""}`}>
+      <span className="spine-mark" aria-hidden="true">
+        {mark}
+      </span>
+      {label && <p className="eyebrow mb-2">{label}</p>}
+      {children}
+    </section>
+  );
+}
+
 export default function LandingPage() {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-10">
@@ -81,46 +108,33 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features */}
-      <section className="mt-16">
-        <div className="rule-ornament mb-5" aria-hidden="true">
-          <span />
-        </div>
-        <h2 className="text-center font-display text-xl font-semibold text-text">
+      {/* Features — no boxes. The spine carries the structure, so these are
+          set as an indented list the way a book sets its points. */}
+      <Section mark="01" label="Why it's different">
+        <h2 className="deboss font-display text-2xl font-semibold text-text">
           Not just another AI wrapper
         </h2>
-        {/* Numbered, not bulleted — three claims set like a prospectus. */}
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          {FEATURES.map((f, i) => (
-            <div
-              key={f.title}
-              className="glass engine-turned rounded-3xl p-5 sm:p-6"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="numeral" aria-hidden="true">
-                  {i + 1}
-                </span>
-                <span className="text-xl" aria-hidden="true">
-                  {f.emoji}
-                </span>
+        <div className="mt-6 flex flex-col gap-7">
+          {FEATURES.map((f) => (
+            <div key={f.title} className="flex items-start gap-3.5">
+              <span className="mt-0.5 text-xl" aria-hidden="true">
+                {f.emoji}
+              </span>
+              <div>
+                <h3 className="font-display text-lg font-semibold text-text">
+                  {f.title}
+                </h3>
+                <p className="mt-1 leading-relaxed text-muted">{f.body}</p>
               </div>
-              <h3 className="deboss mt-3 font-display text-lg font-semibold text-text">
-                {f.title}
-              </h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted">
-                {f.body}
-              </p>
             </div>
           ))}
         </div>
-      </section>
+      </Section>
 
       {/* Parents Mode */}
-      <section className="mt-16">
-        {/* The one featured surface on this page — see globals.css. */}
-        <div className="card-featured watermark rounded-3xl p-7 sm:p-8">
-          <p className="eyebrow">Parents Mode</p>
-          <h2 className="deboss mt-2 font-display text-2xl font-semibold text-text sm:text-3xl">
+      <Section mark="02" label="Parents Mode">
+        <div className="card-featured watermark p-7 sm:p-8">
+          <h2 className="deboss font-display text-2xl font-semibold text-text sm:text-3xl">
             For your brain — and your kid&apos;s.
           </h2>
           <p className="mt-3 max-w-xl leading-relaxed text-muted">
@@ -135,11 +149,13 @@ export default function LandingPage() {
             skills tool — not therapy, diagnosis, or medical advice.
           </p>
         </div>
-      </section>
+      </Section>
 
       {/* Pricing */}
-      <section className="mt-16">
-        <h2 className="text-2xl font-semibold text-text">Honest pricing</h2>
+      <Section mark="03" label="Pricing">
+        <h2 className="deboss font-display text-2xl font-semibold text-text">
+          Honest pricing
+        </h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <div className="rounded-3xl border border-border bg-surface p-6">
             <h3 className="font-semibold text-text">Free</h3>
@@ -173,11 +189,13 @@ export default function LandingPage() {
             </Link>
           </div>
         </div>
-      </section>
+      </Section>
 
       {/* FAQ */}
-      <section className="mt-16">
-        <h2 className="text-2xl font-semibold text-text">Questions</h2>
+      <Section mark="04" label="Questions" last>
+        <h2 className="deboss font-display text-2xl font-semibold text-text">
+          Questions
+        </h2>
         <div className="mt-5 flex flex-col gap-3">
           {FAQ.map((item) => (
             <details
@@ -196,9 +214,10 @@ export default function LandingPage() {
             </details>
           ))}
         </div>
-      </section>
+      </Section>
 
-      {/* Final CTA */}
+      {/* Final CTA — deliberately OFF the spine. The line has ended; this is
+          the page turning to face you. */}
       <section className="mt-16 rounded-3xl bg-accent-soft/60 p-8 text-center">
         <h2 className="text-2xl font-semibold text-text">
           The first step is smaller than you think.

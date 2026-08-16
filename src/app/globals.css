@@ -512,6 +512,89 @@ body:has(nav[data-tabbar]) {
   will-change: transform, opacity;
   animation: seal-in 0.9s ease forwards;
 }
+/* ==========================================================================
+   LAYOUT v3 — THE SPINE
+   ==========================================================================
+   A structural change, not a decorative one.
+
+   v1/v2 stack full-width cards down a centred column: every section is a box,
+   every box looks equally important, and there is no sense of travel through
+   the page. This hangs the whole document off a single gilt rule running down
+   the left, with a numbered mark where each section begins — a ledger margin,
+   an illuminated manuscript's rubrication, a timeline you read downward.
+
+   Chosen because it keeps the one property this audience actually needs:
+   **strictly linear, one thing at a time.** A denser dashboard would look
+   more "designed" and be worse — a wall of simultaneous modules is precisely
+   what an ADHD reader cannot triage. The spine adds orientation (where am I,
+   how much is left) without adding choices.
+
+   `.spine` DOES set `position` — it is a layout primitive, not a decorative
+   utility, and it is never applied to a fixed element. See the rules header.
+   ========================================================================== */
+.spine {
+  position: relative;
+  padding-left: 2.6rem;
+}
+@media (min-width: 640px) {
+  .spine {
+    padding-left: 3.25rem;
+  }
+}
+
+/* The rule itself. Runs past the bottom of the section so consecutive
+   sections read as one continuous line rather than a dashed stack. */
+.spine::before {
+  content: "";
+  position: absolute;
+  left: 0.8rem;
+  top: 0.4rem;
+  bottom: -3.5rem;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    rgb(var(--gold) / 0.6),
+    rgb(var(--gold) / 0.22)
+  );
+}
+@media (min-width: 640px) {
+  .spine::before {
+    left: 1.05rem;
+  }
+}
+/* The last section's rule fades out instead of running into the footer. */
+.spine--last::before {
+  bottom: auto;
+  height: 3rem;
+  background: linear-gradient(to bottom, rgb(var(--gold) / 0.6), transparent);
+}
+
+/* The mark on the rule. Sits ON the line, over the page ground, so the rule
+   appears to pass behind it. */
+.spine-mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--gold) / 0.65);
+  background-color: rgb(var(--bg));
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--accent));
+}
+@media (min-width: 640px) {
+  .spine-mark {
+    left: 0.25rem;
+  }
+}
+
 @keyframes seal-in {
   0% {
     opacity: 0;
