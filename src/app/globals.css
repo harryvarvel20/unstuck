@@ -444,6 +444,9 @@ button,
   inset: 0;
   z-index: -1;
   pointer-events: none;
+  /* The marbling layer is inset -10% to hide its tile seams; without this it
+     would extend past the viewport and can raise a scrollbar. */
+  overflow: hidden;
   background:
     radial-gradient(
       70% 45% at 50% -8%,
@@ -456,6 +459,49 @@ button,
       transparent 70%
     );
 }
+/* --- Marbled endpaper -----------------------------------------------------
+   The swirled stock inside an antique book cover, generated rather than
+   photographed.
+
+   Deliberately not a stock image. A photograph would cost 200KB–2MB, tile
+   visibly, need a licence, and look wrong in one of the two themes. This is
+   ~2KB of SVG, resolution-independent, and reads correctly on ivory and on
+   midnight because it is a luminance field the page tints, not a picture.
+
+   `feTurbulence` at a very low base frequency produces large soft clouds —
+   the same maths marbling actually is. Four octaves adds the fine veining;
+   fewer looks like fog, more looks like static. Two layers at different
+   scales and seeds stop the eye finding the tile. */
+.mesh::before {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  pointer-events: none;
+  /* Kept low ON PURPOSE. Turbulence averages ~50% luminance, so `multiply`
+     at 0.5 would pull ivory from 245 to about 184 and cost roughly a third
+     of the 13.6:1 body-text contrast this palette was built around. At 0.12
+     it reads as mottled stock and the contrast budget is untouched. */
+  opacity: 0.12;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0055' numOctaves='4' seed='11'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='520'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.013' numOctaves='3' seed='29'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E");
+  background-size:
+    900px 900px,
+    520px 520px;
+  /* Multiply keeps it a shadow on the paper rather than a grey film laid
+     over it — the ivory still shows through as the lightest value. */
+  mix-blend-mode: multiply;
+  filter: contrast(1.25);
+}
+.dark .mesh::before {
+  /* On midnight the same field must LIFT rather than darken, or it simply
+     muddies an already-dark ground. Screen raises luminance, so this one is
+     capped even tighter — a lifted background eats contrast from the ivory
+     text sitting on it. */
+  mix-blend-mode: screen;
+  opacity: 0.09;
+}
+
 /* Linen grain — extremely subtle, adds paper texture without noise. */
 .mesh::after {
   content: "";
