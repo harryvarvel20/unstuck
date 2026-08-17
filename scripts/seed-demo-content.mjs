@@ -40,6 +40,32 @@ if (!URL || !KEY) {
 const db = createClient(URL, KEY, { auth: { persistSession: false } });
 const TEARDOWN = process.argv.includes("--teardown");
 
+/**
+ * Retry a Supabase call a few times with backoff.
+ *
+ * A seeding run makes ~30 rapid uploads and inserts, and a handful reliably
+ * die with a bare `TypeError: fetch failed` — a dropped connection, not a
+ * rejection. Without this the run half-succeeds and you are left comparing
+ * console output against the database to work out what is missing, which is
+ * exactly the wrong job to be doing an hour before filming.
+ */
+async function withRetry(label, fn, attempts = 4) {
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      const res = await fn();
+      if (!res?.error) return res;
+      if (i === attempts) return res;
+    } catch (err) {
+      if (i === attempts) {
+        console.log(`  ! ${label}: ${err.message}`);
+        return { error: err };
+      }
+    }
+    await new Promise((r) => setTimeout(r, 400 * i));
+  }
+  return { error: new Error("unreachable") };
+}
+
 /** Every seeded row carries this. It is how teardown stays surgical. */
 const MARK = "demo-seed";
 const PREFIX = "demo_";
@@ -178,18 +204,41 @@ const PARENTS_POSTS = [
     win: "Got through the morning without raising my voice once.",
     caption: "Used the visual routine. She checked the steps off herself.",
     tags: ["visual-routine"],
-  },
-  {
-    who: "demo_twoboysoneme",
-    win: "He asked to do the calm corner. Didn't have to suggest it.",
-    caption: "Six weeks of modelling it and something landed.",
-    tags: ["calm-corner"],
+    photo: "breakfast",
   },
   {
     who: "demo_schoolrunsurv",
     win: "Homework took 20 minutes instead of two hours of tears.",
     caption: "Broke it into three tiny bits. He did the first one to prove it was stupid, then kept going.",
     tags: ["homework-helper"],
+    photo: "homework",
+  },
+  {
+    who: "demo_twoboysoneme",
+    win: "Shoes on and out the door in under a minute.",
+    caption: "First shoes, then the podcast in the car. That's the whole trick and I feel daft for not trying it sooner.",
+    tags: ["first-then"],
+    photo: "shoes",
+  },
+  {
+    who: "demo_twoboysoneme",
+    win: "We tidied the front room together. Sort of.",
+    caption: "Set a timer for six minutes and made it a race. Got about 80% of it. I'll take 80%.",
+    tags: ["visual-routine"],
+    photo: "lego",
+  },
+  {
+    who: "demo_latebloomingj",
+    win: "Baked with her instead of putting a screen on.",
+    caption: "She measured, I did the oven. Forty minutes and nobody cried, including me.",
+    tags: ["together"],
+    photo: "baking",
+  },
+  {
+    who: "demo_twoboysoneme",
+    win: "He asked to do the calm corner. Didn't have to suggest it.",
+    caption: "Six weeks of modelling it and something landed.",
+    tags: ["calm-corner"],
   },
   {
     who: "demo_latebloomingj",
@@ -269,7 +318,21 @@ function photoIndex() {
     const lower = f.toLowerCase();
     // Skip Windows' "- Copy" duplicates so the same shot doesn't appear twice.
     if (lower.includes("- copy")) continue;
-    for (const key of ["food", "running", "gym", "mountain", "woods"]) {
+    const keys = [
+      // main-space wins
+      "food",
+      "running",
+      "gym",
+      "mountain",
+      "woods",
+      // parents-space wins
+      "homework",
+      "lego",
+      "shoes",
+      "breakfast",
+      "baking",
+    ];
+    for (const key of keys) {
       if (lower.includes(key) && !map.has(key)) map.set(key, f);
     }
   }
@@ -335,9 +398,11 @@ async function seed() {
       const safe = file.replace(/[^a-zA-Z0-9.-]+/g, "-").toLowerCase();
       const path = `${userId}/${Date.now()}-${safe}`;
       const ext = extname(file).slice(1).toLowerCase();
-      const { error } = await db.storage.from(BUCKET).upload(path, bytes, {
-        contentType: `image/${ext === "jpg" ? "jpeg" : ext}`,
-      });
+      const { error } = await withRetry(`photo ${file}`, () =>
+        db.storage.from(BUCKET).upload(path, bytes, {
+          contentType: `image/${ext === "jpg" ? "jpeg" : ext}`,
+        }),
+      );
       if (error) console.log(`  ! photo ${file}: ${error.message}`);
       else photoPath = path;
     }
@@ -346,16 +411,18 @@ async function seed() {
     const daysAgo = Math.random() * 10;
     const created = new Date(Date.now() - daysAgo * 86_400_000).toISOString();
 
-    const { error } = await db.from("posts").insert({
-      user_id: userId,
-      win_text: item.win,
-      caption: item.caption,
-      tags: [...item.tags, MARK],
-      visibility: "public",
-      space,
-      photo_path: photoPath,
-      created_at: created,
-    });
+    const { error } = await withRetry(`post "${item.win.slice(0, 32)}…"`, () =>
+      db.from("posts").insert({
+        user_id: userId,
+        win_text: item.win,
+        caption: item.caption,
+        tags: [...item.tags, MARK],
+        visibility: "public",
+        space,
+        photo_path: photoPath,
+        created_at: created,
+      }),
+    );
     if (error) console.log(`  ! post failed: ${error.message}`);
     else n++;
   }
